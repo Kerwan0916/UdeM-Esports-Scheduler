@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(PLAYER)
+  teams     TeamMember[]
+  reservationsCreated Reservation[] @relation("UserCreatedReservations")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Team {
+  id           String         @id @default(cuid())
+  name         String
+  gameTitle    String
+  members      TeamMember[]
+  reservations Reservation[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model TeamMember {
+  id         String @id @default(cuid())
+  team       Team   @relation(fields: [teamId], references: [id])
+  teamId     String
+  user       User   @relation(fields: [userId], references: [id])
+  userId     String
+  roleInTeam String?
+  @@unique([teamId, userId])
+}
+
+model Computer {
+  id           Int            @id @default(autoincrement())
+  label        String         @unique
+  isActive     Boolean        @default(true)
+  reservations Reservation[]
+  blackouts    Blackout[]     @relation("ComputerBlackouts")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Reservation {
+  id              String   @id @default(cuid())
+  team            Team     @relation(fields: [teamId], references: [id])
+  teamId          String
+  computer        Computer @relation(fields: [computerId], references: [id])
+  computerId      Int
+  startsAt        DateTime
+  endsAt          DateTime
+  createdBy       User     @relation("UserCreatedReservations", fields: [createdByUserId], references: [id])
+  createdByUserId String
+  status          ReservationStatus @default(CONFIRMED)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([computerId, startsAt, endsAt])
+}
+
+model Blackout {
+  id         String    @id @default(cuid())
+  reason     String
+  scope      BlackoutScope
+  computer   Computer? @relation("ComputerBlackouts", fields: [computerId], references: [id])
+  computerId Int?
+  startsAt   DateTime
+  endsAt     DateTime
+  createdAt  DateTime  @default(now())
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  COACH
+  PLAYER
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum BlackoutScope {
+  ALL
+  COMPUTER
+}
