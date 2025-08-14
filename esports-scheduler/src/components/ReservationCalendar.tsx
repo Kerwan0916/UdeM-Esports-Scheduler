@@ -7,12 +7,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
 
-// FullCalendar (client-only)
 const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
-
-// Styles (your install ships CSS only in the plugins, not in @fullcalendar/core)
-import '@fullcalendar/daygrid/main.css';  
-import '@fullcalendar/timegrid/main.css';  
 
 type Team = { id: string; name: string; gameTitle: string };
 type Computer = { id: number; label: string; isActive: boolean };
@@ -26,6 +21,23 @@ type Reservation = {
   computer?: { label: string };
 };
 
+// --- helper: fetch JSON safely & log problems ---
+async function fetchJson<T = any>(url: string, init?: RequestInit): Promise<T | null> {
+  const res = await fetch(url, init);
+  const text = await res.text(); // read raw so we can diagnose
+  if (!res.ok) {
+    console.error(`[fetchJson] ${url} -> ${res.status}`, text);
+    throw new Error(`Request failed: ${url} (${res.status})`);
+  }
+  if (!text) return null; // 204/empty
+  try {
+    return JSON.parse(text) as T;
+  } catch (e) {
+    console.error(`[fetchJson] Non-JSON from ${url}:`, text);
+    throw e;
+  }
+}
+
 export default function ReservationCalendar() {
   const [events, setEvents] = useState<EventInput[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -37,14 +49,14 @@ export default function ReservationCalendar() {
   const [selectStart, setSelectStart] = useState<Date | null>(null);
   const [selectEnd, setSelectEnd] = useState<Date | null>(null);
   const [teamId, setTeamId] = useState<string>('');
-  const [computerId, setComputerId] = useState<number | ''>('');
+  const [computerIds, setComputerIds] = useState<number[]>([]); // multi-PC
 
   // load reservations
   const loadReservations = useCallback(async () => {
-    const res = await fetch('/api/reservations', { cache: 'no-store' });
-    const data: Reservation[] = await res.json();
+    const data = await fetchJson<Reservation[]>('/api/reservations', { cache: 'no-store' });
+    const list = Array.isArray(data) ? data : [];
     setEvents(
-      data.map((r) => ({
+      list.map((r) => ({
         id: r.id,
         title: `${r.computer?.label ?? 'PC'} — ${r.team?.name ?? r.teamId}`,
         start: r.startsAt,
@@ -56,26 +68,21 @@ export default function ReservationCalendar() {
   // load dropdown data
   const loadLookups = useCallback(async () => {
     const [t, c] = await Promise.all([
-      fetch('/api/teams', { cache: 'no-store' }).then((r) => r.json()),
-      fetch('/api/computers', { cache: 'no-store' }).then((r) => r.json()),
+      fetchJson<Team[]>('/api/teams', { cache: 'no-store' }),
+      fetchJson<Computer[]>('/api/computers', { cache: 'no-store' }),
     ]);
-    setTeams(t as Team[]);
-    setComputers((c as Computer[]).filter((x) => x.isActive));
+    setTeams(Array.isArray(t) ? t : []);
+    setComputers(Array.isArray(c) ? c.filter((x) => x.isActive) : []);
   }, []);
 
   // load default user id for createdByUserId
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/default-user', { cache: 'no-store' });
-        if (res.ok) {
-          const u = await res.json();
-          setCurrentUserId(u.id as string);
-        } else {
-          console.error('default-user failed', await res.text());
-        }
+        const u = await fetchJson<{ id: string }>('/api/default-user', { cache: 'no-store' });
+        if (u?.id) setCurrentUserId(u.id);
       } catch (e) {
-        console.error(e);
+        // already logged by fetchJson
       }
     })();
   }, []);
@@ -99,32 +106,43 @@ export default function ReservationCalendar() {
 
   const submitReservation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectStart || !selectEnd || !teamId || !computerId || !currentUserId) return;
+    if (!selectStart || !selectEnd || !teamId || computerIds.length === 0 || !currentUserId) return;
 
     const payload = {
       teamId,
-      computerId: Number(computerId),
+      computerIds, // ARRAY for multi-PC reservations
       startsAt: selectStart.toISOString(),
       endsAt: selectEnd.toISOString(),
-      createdByUserId: currentUserId, // <-- critical
+      createdByUserId: currentUserId,
     };
 
-    const res = await fetch('/api/reservations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
+    try {
+      const res = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        console.error('[POST /api/reservations] failed:', text);
+        let msg = 'Failed to create reservation';
+        try { msg = JSON.parse(text)?.error ?? msg; } catch {}
+        alert(msg);
+        return;
+      }
+      // success -> refresh events
+      await loadReservations();
       setIsOpen(false);
       setTeamId('');
-      setComputerId('');
-      await loadReservations();
-    } else {
-      const { error } = await res.json().catch(() => ({}));
-      alert(error ?? 'Failed to create reservation');
+      setComputerIds([]);
+    } catch (err) {
+      console.error(err);
+      alert('Network error while creating reservations');
     }
   };
+
+  const selectAll = () => setComputerIds(computers.map((c) => c.id));
+  const clearAll = () => setComputerIds([]);
 
   return (
     <div className="p-4">
@@ -157,20 +175,33 @@ export default function ReservationCalendar() {
               </div>
 
               <div>
-                <label className="block text-sm mb-1">Computer</label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm mb-1">Computer(s)</label>
+                  <div className="flex gap-2 text-xs">
+                    <button type="button" className="underline" onClick={selectAll}>Select all</button>
+                    <button type="button" className="underline" onClick={clearAll}>Clear</button>
+                  </div>
+                </div>
                 <select
-                  value={computerId}
-                  onChange={(e) => setComputerId(Number(e.target.value))}
+                  multiple
+                  value={computerIds.map(String)}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, (opt) => Number(opt.value));
+                    setComputerIds(selected);
+                  }}
                   className="w-full rounded border px-3 py-2 bg-white dark:bg-neutral-800"
                   required
+                  size={8}
                 >
-                  <option value="" disabled>Select a computer</option>
                   {computers.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.label}
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-neutral-500 mt-1">
+                  Hold Ctrl (Windows) or Cmd (Mac) to select multiple.
+                </p>
               </div>
 
               <div className="text-xs text-neutral-500">
@@ -180,11 +211,7 @@ export default function ReservationCalendar() {
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <button
-                  type="button"
-                  className="px-3 py-2 rounded border"
-                  onClick={() => setIsOpen(false)}
-                >
+                <button type="button" className="px-3 py-2 rounded border" onClick={() => setIsOpen(false)}>
                   Cancel
                 </button>
                 <button
