@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/admin/purge-reservations?secret=%CRON_SECRET%", "schedule": "0 4 1 * *" }
+  ]
+}
