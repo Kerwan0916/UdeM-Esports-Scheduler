@@ -1,0 +1,6 @@
+{
+	"dependencies": {
+		"next-auth": "^4.24.11",
+		"@auth/prisma-adapter": "^2.10.0"
+	}
+}
