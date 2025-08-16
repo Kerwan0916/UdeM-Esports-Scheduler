@@ -13,15 +13,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/* --------------------------- App models --------------------------- */
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  role      Role     @default(PLAYER)
-  teams     TeamMember[]
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String?
+  image              String?
+  emailVerified      DateTime?
+  role               Role     @default(PLAYER)
+  passwordHash       String?             // <— for Credentials sign-in
+
+  teams              TeamMember[]
   reservationsCreated Reservation[] @relation("UserCreatedReservations")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  // Auth.js relations (Prisma adapter)
+  accounts           Account[]
+  sessions           Session[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model Team {
@@ -32,6 +43,8 @@ model Team {
   reservations Reservation[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@unique([gameTitle, name], name: "team_gameTitle_name_unique")
 }
 
 model TeamMember {
@@ -41,6 +54,7 @@ model TeamMember {
   user       User   @relation(fields: [userId], references: [id])
   userId     String
   roleInTeam String?
+
   @@unique([teamId, userId])
 }
 
@@ -62,13 +76,17 @@ model Reservation {
   computerId      Int
   startsAt        DateTime
   endsAt          DateTime
+
   createdBy       User     @relation("UserCreatedReservations", fields: [createdByUserId], references: [id])
   createdByUserId String
+
   status          ReservationStatus @default(CONFIRMED)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([computerId, startsAt, endsAt])
+  // (optional) uncomment if you often query by team/time:
+  // @@index([teamId, startsAt, endsAt])
 }
 
 model Blackout {
@@ -81,6 +99,48 @@ model Blackout {
   endsAt     DateTime
   createdAt  DateTime  @default(now())
 }
+
+/* ------------------------ Auth.js (NextAuth) ------------------------ */
+/* These are the standard models used by @auth/prisma-adapter */
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/* ----------------------------- Enums ----------------------------- */
 
 enum Role {
   ADMIN
