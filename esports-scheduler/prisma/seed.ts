@@ -1,18 +1,31 @@
-import { PrismaClient } from '@prisma/client';
+// prisma/seed.ts
+import { PrismaClient, Role } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
 const prisma = new PrismaClient();
 
-async function main() {
-  // 1) Admin user (id/email can be whatever you already use)
+async function upsertAdmin(email: string, name: string, plainPassword: string) {
+  const passwordHash = await bcrypt.hash(plainPassword, 12);
   await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: { email: 'admin@example.com', name: 'Admin', role: 'ADMIN' },
+    where: { email },
+    update: { role: Role.ADMIN, passwordHash },
+    create: { email, name, role: Role.ADMIN, passwordHash },
   });
+}
 
-  // 2) Computers 1..15
+async function main() {
+  // --- Admin users (CHANGE THESE PASSWORDS BEFORE USING IN PROD) ---
+  await upsertAdmin('valadmin@udemesports', 'Valorant',   'ChangeMe#1');
+  await upsertAdmin('loladmin@udemesports', 'League of Legends',   'ChangeMe#2');
+  await upsertAdmin('overwatchadmin@udemesports', 'Overwatch', 'ChangeMe#3');
+  await upsertAdmin('rladmin@udemesports', 'Rocket League',  'ChangeMe#4');
+  await upsertAdmin('president@udemesports', 'President',  'ChangeMe#5');
+  await upsertAdmin('scheduler@udemesports', 'Scheduler',  'ChangeMe#5');
+
+  // --- Computers 1..15 ---
   const labels = Array.from({ length: 15 }, (_, i) => `PC-${String(i + 1).padStart(2, '0')}`);
   await Promise.all(
-    labels.map(label =>
+    labels.map((label) =>
       prisma.computer.upsert({
         where: { label },
         update: {},
@@ -21,11 +34,12 @@ async function main() {
     )
   );
 
-  // 3) Teams: A & B for each game (use fixed ids so upsert always works)
+  // --- Teams: A & B for each game ---
   const games = ['Valorant', 'League of Legends', 'Rocket League', 'Overwatch', 'CS2'] as const;
   const letters = ['A', 'B'] as const;
-  const teams = games.flatMap(game =>
-    letters.map(letter => ({
+
+  const teams = games.flatMap((game) =>
+    letters.map((letter) => ({
       id: `team-${game.toLowerCase().replace(/\s+/g, '-')}-${letter.toLowerCase()}`,
       name: `${game} ${letter}`,
       gameTitle: game,
@@ -34,13 +48,18 @@ async function main() {
 
   for (const t of teams) {
     await prisma.team.upsert({
-      where: { id: t.id },    // use fixed id to avoid needing a unique constraint on name
+      where: { id: t.id }, // fixed ID keeps upserts idempotent
       update: {},
       create: t,
     });
   }
 
-  console.log('Seed complete: admin, 15 computers, A/B teams for 5 games.');
+  console.log('Seed complete: 5 admins, 15 computers, A/B teams for 5 games.');
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
