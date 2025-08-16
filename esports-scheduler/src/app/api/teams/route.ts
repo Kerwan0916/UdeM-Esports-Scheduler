@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   const teams = await prisma.team.findMany({
     select: { id: true, name: true, gameTitle: true },
-    orderBy: { name: 'asc' },
+    orderBy: [{ gameTitle: 'asc' }, { name: 'asc' }]
   });
   return NextResponse.json(teams);
 }

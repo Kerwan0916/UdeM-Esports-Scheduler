@@ -72,7 +72,7 @@ export default function ReservationCalendar() {
       fetchJson<Computer[]>('/api/computers', { cache: 'no-store' }),
     ]);
     setTeams(Array.isArray(t) ? t : []);
-    setComputers(Array.isArray(c) ? c.filter((x) => x.isActive) : []);
+    setComputers(Array.isArray(c) ? c.filter((x) => x.isActive).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })) : []);
   }, []);
 
   // load default user id for createdByUserId
