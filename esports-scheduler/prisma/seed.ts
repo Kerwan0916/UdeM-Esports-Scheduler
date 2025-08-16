@@ -20,7 +20,7 @@ async function main() {
   await upsertAdmin('overwatchadmin@udemesports', 'Overwatch', 'ChangeMe#3');
   await upsertAdmin('rladmin@udemesports', 'Rocket League',  'ChangeMe#4');
   await upsertAdmin('president@udemesports', 'President',  'ChangeMe#5');
-  await upsertAdmin('scheduler@udemesports', 'Scheduler',  'ChangeMe#5');
+  await upsertAdmin('scheduler@udemesports', 'Scheduler',  'ChangeMe#6');
 
   // --- Computers 1..15 ---
   const labels = Array.from({ length: 15 }, (_, i) => `PC-${String(i + 1).padStart(2, '0')}`);
