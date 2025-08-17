@@ -220,3 +220,113 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: e.message ?? 'Failed to delete reservations' }, { status: 400 });
   }
 }
+
+export async function PUT(req: Request) {
+  // Auth: admin only
+  const session = await getServerSession(authOptions);
+  const sessionUser = session?.user as any;
+  if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (sessionUser.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const body = (await req.json()) as {
+    groupId?: string;           // required (normal path)
+    // legacy fallback key (only if you still have very old rows without groupId)
+    legacyKey?: { teamId: string; startsAt: string; endsAt: string; createdByUserId: string };
+
+    teamId?: string;
+    computerIds?: number[];
+    startsAt?: string;
+    endsAt?: string;
+  };
+
+  // Resolve target group
+  let targetWhere: any;
+  if (body.groupId) {
+    targetWhere = { groupId: body.groupId };
+  } else if (body.legacyKey) {
+    const { teamId, startsAt, endsAt, createdByUserId } = body.legacyKey;
+    targetWhere = {
+      groupId: null,
+      teamId,
+      createdByUserId,
+      startsAt: new Date(startsAt),
+      endsAt: new Date(endsAt),
+    };
+  } else {
+    return NextResponse.json({ error: 'groupId or legacyKey is required' }, { status: 400 });
+  }
+
+  const start = body.startsAt ? new Date(body.startsAt) : null;
+  const end   = body.endsAt   ? new Date(body.endsAt)   : null;
+  if (!body.teamId || !Array.isArray(body.computerIds) || body.computerIds.length === 0 || !start || !end || !(start < end)) {
+    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+  }
+  const compIds = body.computerIds.map(Number).filter(Number.isFinite);
+
+  // Fetch existing group, grab original creator (keep attribution)
+  const existing = await prisma.reservation.findMany({ where: targetWhere });
+  if (existing.length === 0) return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+
+  const originalGroupId = existing[0].groupId; // could be null for legacy
+  const createdByUserId = existing[0].createdByUserId;
+
+  // Validate team + computers
+  const [team, comps] = await Promise.all([
+    prisma.team.findUnique({ where: { id: body.teamId } }),
+    prisma.computer.findMany({ where: { id: { in: compIds }, isActive: true } }),
+  ]);
+  if (!team) return NextResponse.json({ error: 'teamId does not exist' }, { status: 400 });
+  if (comps.length !== compIds.length) {
+    const found = new Set(comps.map(c => c.id));
+    const missing = compIds.filter(id => !found.has(id));
+    return NextResponse.json({ error: `Invalid or inactive computerId(s): ${missing.join(', ')}` }, { status: 400 });
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // Conflict check: overlap on any selected PC, excluding the current group
+      const conflicts = await tx.reservation.findMany({
+        where: {
+          computerId: { in: compIds },
+          status: 'CONFIRMED',
+          startsAt: { lt: end },
+          endsAt:   { gt: start },
+          NOT: originalGroupId
+            ? { groupId: originalGroupId }
+            : targetWhere, // exclude legacy rows matching the original set
+        },
+        include: { computer: true },
+      });
+      if (conflicts.length) {
+        const pcs = Array.from(new Set(conflicts.map(c => c.computer?.label ?? String(c.computerId)))).join(', ');
+        throw new Error(`Already reserved for: ${pcs}`);
+      }
+
+      // Delete old rows in this group
+      await tx.reservation.deleteMany({ where: targetWhere });
+
+      // Recreate rows with same groupId (or mint one if legacy)
+      const groupId = originalGroupId ?? randomUUID();
+      const created = await Promise.all(
+        compIds.map((cid) =>
+          tx.reservation.create({
+            data: {
+              groupId,
+              teamId: body.teamId!,
+              computerId: cid,
+              startsAt: start!,
+              endsAt: end!,
+              createdByUserId,   // keep original creator
+              status: 'CONFIRMED',
+            },
+          })
+        )
+      );
+      return { groupId, createdCount: created.length };
+    });
+
+    return NextResponse.json(result, { status: 200 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message ?? 'Failed to update reservations' }, { status: 409 });
+  }
+}

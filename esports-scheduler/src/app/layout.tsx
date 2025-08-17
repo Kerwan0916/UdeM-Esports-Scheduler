@@ -18,8 +18,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.15/index.css" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.15/index.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/index.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.10/index.css" />
+        <style>{`
+          /* optional: small gutter + prevent text bleed */
+          .fc .fc-timegrid-event { margin: 0 1px; }
+          .fc .fc-timegrid-event .fc-event-main { overflow: hidden; white-space: normal; }
+        `}</style>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* SessionProvider wrapper */}
