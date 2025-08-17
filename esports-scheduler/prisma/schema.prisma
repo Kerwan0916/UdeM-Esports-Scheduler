@@ -81,10 +81,14 @@ model Reservation {
   createdByUserId String
 
   status          ReservationStatus @default(CONFIRMED)
+
+  groupId         String? // same value for all rows of a multi-PC booking
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([computerId, startsAt, endsAt])
+  @@index([groupId]) 
   // (optional) uncomment if you often query by team/time:
   // @@index([teamId, startsAt, endsAt])
 }

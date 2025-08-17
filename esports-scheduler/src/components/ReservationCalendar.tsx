@@ -13,6 +13,19 @@ const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false }
 
 type Team = { id: string; name: string; gameTitle: string };
 type Computer = { id: number; label: string; isActive: boolean };
+
+// What the API returns when grouped=1
+type ReservationGroupDTO = {
+  id: string; // groupId (or fallback key from the API)
+  teamId: string;
+  startsAt: string;
+  endsAt: string;
+  team?: { name: string };
+  computers: { id: number; label: string }[];
+  createdBy?: { id: string; name: string | null; email: string | null }; // <-- added
+};
+
+// Ungrouped DTO (still used for types in a few places)
 type ReservationDTO = {
   id: string;
   teamId: string;
@@ -30,6 +43,29 @@ async function fetchJson<T = any>(url: string, init?: RequestInit): Promise<T | 
   if (!res.ok) throw new Error(text || `Request failed: ${res.status}`);
   if (!text) return null;
   return JSON.parse(text) as T;
+}
+
+// helper: build a compact summary like "PCs 1-6, 9, 12"
+function summarizePcLabels(labels: string[]) {
+  // Try to compress by numeric suffix; if labels aren't numeric, just join.
+  const parsed = labels.map((l) => {
+    const m = l.match(/(\d+)\s*$/);
+    return { label: l, n: m ? parseInt(m[1], 10) : NaN };
+  });
+  if (parsed.some((p) => Number.isNaN(p.n))) {
+    return `PCs ${labels.join(', ')}`;
+  }
+  parsed.sort((a, b) => a.n - b.n);
+  const ranges: string[] = [];
+  let s = parsed[0].n, p = s;
+  for (let i = 1; i < parsed.length; i++) {
+    const cur = parsed[i].n;
+    if (cur === p + 1) { p = cur; continue; }
+    ranges.push(s === p ? `${s}` : `${s}-${p}`);
+    s = p = cur;
+  }
+  ranges.push(s === p ? `${s}` : `${s}-${p}`);
+  return `PCs ${ranges.join(', ')}`;
 }
 
 export default function ReservationCalendar() {
@@ -58,33 +94,37 @@ export default function ReservationCalendar() {
     team: string;
     createdByName: string;
     createdByEmail: string;
+    isGroup: boolean;
   } | null>(null);
 
+  // ----- LOAD RESERVATIONS (grouped) -----
   const loadReservations = useCallback(async () => {
-    const data = await fetchJson<ReservationDTO[]>('/api/reservations', { cache: 'no-store' });
+    // Ask the API for grouped results -> one event per booking
+    const data = await fetchJson<ReservationGroupDTO[]>('/api/reservations?grouped=1', { cache: 'no-store' });
     const list = Array.isArray(data) ? data : [];
+
     setEvents(
-      list.map((r) => {
-        const start = r.startsAt;
-        const end = r.endsAt;
-        const title = `${r.computer?.label ?? `PC-${r.computerId}`} — ${r.team?.name ?? r.teamId}`;
-        return {
-          id: r.id,
-          title,
-          start,
-          end,
-          extendedProps: {
-            reservationId: r.id,
-            computerLabel: r.computer?.label ?? `PC-${r.computerId}`,
-            teamName: r.team?.name ?? r.teamId,
-            createdByName: r.createdBy?.name ?? r.createdBy?.email ?? 'Unknown',
-            createdByEmail: r.createdBy?.email ?? '',
-          },
-        } as EventInput;
-      })
-    );
+  list.map((g) => {
+    const labels = g.computers.map((c) => c.label);
+    const summary = summarizePcLabels(labels); // your helper
+    const title = `${g.team?.name ?? g.teamId} — ${summary} (${labels.length})`;
+    return {
+      id: g.id,
+      title,
+      start: g.startsAt,
+      end: g.endsAt,
+      extendedProps: {
+        groupId: g.id,
+        labels,
+        teamName: g.team?.name ?? g.teamId,
+        createdBy: g.createdBy ?? null, // <-- pass through
+      },
+    } as EventInput;
+  })
+);
   }, []);
 
+  // ----- LOOKUPS (keep your numeric label compare) -----
   const loadLookups = useCallback(async () => {
     const [t, c] = await Promise.all([
       fetchJson<Team[]>('/api/teams', { cache: 'no-store' }),
@@ -97,7 +137,9 @@ export default function ReservationCalendar() {
     );
     setComputers(
       Array.isArray(c)
-        ? c.filter((x) => x.isActive).sort((a, b) => a.label.localeCompare(b.label, undefined, {numeric: true}))
+        ? c
+            .filter((x) => x.isActive)
+            .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }))
         : []
     );
   }, []);
@@ -110,7 +152,7 @@ export default function ReservationCalendar() {
       alert('Only admins can create reservations.');
       return;
     }
-    setComputerIds([]);
+    setComputerIds([]); // fresh selection each time
     setTeamId('');
     setSelectStart(arg.start);
     setSelectEnd(arg.end);
@@ -118,20 +160,24 @@ export default function ReservationCalendar() {
   };
 
   const handleEventClick = (click: EventClickArg) => {
-    const id = String(click.event.id);
+    const isGroup = true; // all events are grouped in this view
     const start = click.event.start ? new Date(click.event.start) : null;
     const end   = click.event.end ? new Date(click.event.end) : null;
     const when  = start && end ? `${start.toLocaleString()} → ${end.toLocaleString()}` : '';
     const xp = click.event.extendedProps as any;
+    const labels: string[] = xp?.labels ?? [];
+    const pcSummary = summarizePcLabels(labels);
+    const cb = xp?.createdBy as { name?: string | null; email?: string | null } | null | undefined;
 
     setDetail({
-      id,
+      id: String(click.event.id), // groupId
       title: String(click.event.title),
       when,
-      computer: xp?.computerLabel ?? '',
+      computer: pcSummary, // show "PCs 1-6, 9"
       team: xp?.teamName ?? '',
-      createdByName: xp?.createdByName ?? 'Unknown',
-      createdByEmail: xp?.createdByEmail ?? '',
+      createdByName: cb?.name ?? cb?.email ?? 'Unknown',  // <-- use creator from group
+      createdByEmail: cb?.email ?? '',
+      isGroup,
     });
     setIsDetailsOpen(true);
   };
@@ -165,22 +211,35 @@ export default function ReservationCalendar() {
     await loadReservations();
   };
 
+  // NOTE: current API deletes by single reservation id, not group id.
+  // Disable for grouped events to avoid 404/409.
   const deleteReservation = async () => {
-    if (!detail) return;
-    const yes = confirm('Are you sure you want to delete this reservation?');
-    if (!yes) return;
+  if (!detail) return;
 
-    const res = await fetch(`/api/reservations/${encodeURIComponent(detail.id)}`, { method: 'DELETE' });
-    if (!res.ok) {
-      let msg = 'Failed to delete reservation';
-      try { msg = (await res.json()).error ?? msg; } catch {}
-      alert(msg);
-      return;
-    }
-    setIsDetailsOpen(false);
-    setDetail(null);
-    await loadReservations();
-  };
+  const yes = confirm('Delete this reservation? This will remove all PCs in the booking.');
+  if (!yes) return;
+
+  let res: Response;
+
+  if (detail.isGroup) {
+    // delete the whole booking (all rows with the same groupId)
+    res = await fetch(`/api/reservations?groupId=${encodeURIComponent(detail.id)}`, { method: 'DELETE' });
+  } else {
+    // single-row delete (kept for completeness if you ever show ungrouped rows)
+    res = await fetch(`/api/reservations/${encodeURIComponent(detail.id)}`, { method: 'DELETE' });
+  }
+
+  if (!res.ok) {
+    let msg = 'Failed to delete reservation';
+    try { msg = (await res.json()).error ?? msg; } catch {}
+    alert(msg);
+    return;
+  }
+
+  setIsDetailsOpen(false);
+  setDetail(null);
+  await loadReservations();
+};
 
   const selectAll = () => setComputerIds(computers.map((c) => c.id));
   const clearAll = () => setComputerIds([]);
@@ -291,7 +350,10 @@ export default function ReservationCalendar() {
               <div><span className="text-neutral-500">When:</span> {detail.when}</div>
               <div><span className="text-neutral-500">Computer:</span> {detail.computer}</div>
               <div><span className="text-neutral-500">Team:</span> {detail.team}</div>
-              <div><span className="text-neutral-500">Created by:</span> {detail.createdByName}{detail.createdByEmail ? ` (${detail.createdByEmail})` : ''}</div>
+              <div>
+                <span className="text-neutral-500">Created by:</span>{' '}
+                {detail.createdByName}{detail.createdByEmail ? ` (${detail.createdByEmail})` : ''}
+              </div>
             </div>
 
             <div className="flex gap-2 justify-end pt-4">
