@@ -54,6 +54,13 @@ async function main() {
     });
   }
 
+  // one-off: ensure the single 'UdeM Class' team exists
+  await prisma.team.upsert({
+    where: { id: 'team-udem-class' }, // pick any stable string id
+    update: { name: 'UdeM Class', gameTitle: 'Class' },
+    create: { id: 'team-udem-class', name: 'UdeM Class', gameTitle: 'Class' },
+  });
+
   console.log('Seed complete: 5 admins, 15 computers, A/B teams for 5 games.');
 }
 

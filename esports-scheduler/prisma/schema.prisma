@@ -76,6 +76,7 @@ model Reservation {
   computerId      Int
   startsAt        DateTime
   endsAt          DateTime
+  note            String?
 
   createdBy       User     @relation("UserCreatedReservations", fields: [createdByUserId], references: [id])
   createdByUserId String

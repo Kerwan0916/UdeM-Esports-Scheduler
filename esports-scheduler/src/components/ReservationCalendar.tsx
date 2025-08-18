@@ -8,7 +8,22 @@ import type { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/cor
 import { useSession, signIn, signOut } from 'next-auth/react';
 import FullCalendar from '@fullcalendar/react';
 
-// Evenly split width among overlapping events within each day column
+// Map game titles → event color (case-insensitive keys)
+const GAME_COLORS: Record<string, string> = {
+  'valorant': '#a78bfa',           // purple
+  'cs2': '#22c55e',                // green
+  'league of legends': '#f87171',  // rose
+  'rocket league': '#f97316',      // orange
+  'dota 2': '#ef4444',             // red
+  'overwatch': '#facc15',          // yellow
+  'fifa': '#8b5cf6',               // indigo
+  'apex legends': '#eb8f34',       // pink
+  'call of duty': '#34d399',       // emerald
+  'fortnite': '#f87171',           // rose
+  'udem class': '#f472b6',      // blue-500
+  // add more as needed…
+};
+
 // Evenly split width among overlapping events within each day column
 function equalizeTimegridOverlaps() {
   if (typeof document === 'undefined') return;
@@ -70,7 +85,6 @@ function equalizeTimegridOverlaps() {
     if (cluster.length) layoutCluster(cluster);
   });
 }
-
 
 // small scheduler to run after FC paints
 const scheduleEqualize = () => {
@@ -137,6 +151,7 @@ export default function ReservationCalendar() {
   const isAdmin = role === 'ADMIN';
 
   const [events, setEvents] = useState<EventInput[]>([]);
+  const [eventsRaw, setEventsRaw] = useState<EventInput[]>([]); // <— NEW
   const [teams, setTeams] = useState<Team[]>([]);
   const [computers, setComputers] = useState<Computer[]>([]);
 
@@ -173,7 +188,7 @@ export default function ReservationCalendar() {
   const loadReservations = useCallback(async () => {
     const data = await fetchJson<ReservationGroupDTO[]>('/api/reservations?grouped=1', { cache: 'no-store' });
     const list = Array.isArray(data) ? data : [];
-    setEvents(
+    setEventsRaw(
       list.map((g) => {
         const labels = g.computers.map((c) => c.label);
         const ids = g.computers.map((c) => c.id);
@@ -190,6 +205,7 @@ export default function ReservationCalendar() {
             computerIds: ids,
             teamId: g.teamId,
             teamName: g.team?.name ?? g.teamId,
+            // we don’t rely on game here; we’ll look it up from teams
             createdBy: g.createdBy ?? null,
           },
         } as EventInput;
@@ -225,6 +241,25 @@ export default function ReservationCalendar() {
 
   useEffect(() => { loadReservations(); }, [loadReservations]);
   useEffect(() => { loadLookups(); }, [loadLookups]);
+
+  // Build teamId → normalized game title
+  const teamGameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of teams) m.set(t.id, (t.gameTitle || '').toLowerCase().trim());
+    return m;
+  }, [teams]);
+
+  // Colorize events based on team game; keep everything else the same
+  useEffect(() => {
+    const colored = eventsRaw.map((e) => {
+      const teamId = (e.extendedProps as any)?.teamId as string | undefined;
+      const key = teamId ? (teamGameById.get(teamId) || '') : '';
+      const color = GAME_COLORS[key] ?? '#3b82f6'; // default color
+      return { ...e, backgroundColor: color, borderColor: color };
+    });
+    setEvents(colored);
+    scheduleEqualize();
+  }, [eventsRaw, teamGameById]);
 
   // ----- OPEN CREATE from selection -----
   const handleSelect = (arg: DateSelectArg) => {
