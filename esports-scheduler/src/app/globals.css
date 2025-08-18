@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Let FullCalendar control event widths in timeGrid */
+/* Optional: small horizontal spacing between overlapping events */
+
+/* Optional tidy ups (keep your existing ones) */
+.fc .fc-timegrid-event { margin: 0 1px; }
+.fc .fc-timegrid-event .fc-event-main { overflow: hidden; white-space: normal; }
+

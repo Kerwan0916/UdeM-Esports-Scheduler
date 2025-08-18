@@ -20,7 +20,7 @@ async function main() {
   await upsertAdmin('overwatchadmin@udemesports', 'Overwatch', 'ChangeMe#3');
   await upsertAdmin('rladmin@udemesports', 'Rocket League',  'ChangeMe#4');
   await upsertAdmin('president@udemesports', 'President',  'ChangeMe#5');
-  await upsertAdmin('scheduler@udemesports', 'Scheduler',  'ChangeMe#5');
+  await upsertAdmin('scheduler@udemesports', 'Scheduler',  'ChangeMe#6');
 
   // --- Computers 1..15 ---
   const labels = Array.from({ length: 15 }, (_, i) => `PC-${String(i + 1).padStart(2, '0')}`);
@@ -53,6 +53,13 @@ async function main() {
       create: t,
     });
   }
+
+  // one-off: ensure the single 'UdeM Class' team exists
+  await prisma.team.upsert({
+    where: { id: 'team-udem-class' }, // pick any stable string id
+    update: { name: 'UdeM Class', gameTitle: 'Class' },
+    create: { id: 'team-udem-class', name: 'UdeM Class', gameTitle: 'Class' },
+  });
 
   console.log('Seed complete: 5 admins, 15 computers, A/B teams for 5 games.');
 }
