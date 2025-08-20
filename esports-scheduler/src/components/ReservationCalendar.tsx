@@ -7,6 +7,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import FullCalendar from '@fullcalendar/react';
+import Link from 'next/link';
 
 // Map game titles → event color (case-insensitive keys)
 const GAME_COLORS: Record<string, string> = {
@@ -495,13 +496,21 @@ export default function ReservationCalendar() {
           {isAdmin ? 'You are signed in as admin.' : 'View only.'}
         </p>
         {isAdmin ? (
-          <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/account/password"
+              className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              Change password
+            </Link>
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
         ) : (
           <button
             type="button"
