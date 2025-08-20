@@ -11,19 +11,21 @@ import Link from 'next/link';
 
 // Map game titles → event color (case-insensitive keys)
 const GAME_COLORS: Record<string, string> = {
-  'valorant': '#a78bfa',           // purple
-  'cs2': '#22c55e',                // green
-  'league of legends': '#f87171',  // rose
-  'rocket league': '#f97316',      // orange
-  'dota 2': '#ef4444',             // red
-  'overwatch': '#facc15',          // yellow
-  'fifa': '#8b5cf6',               // indigo
-  'apex legends': '#eb8f34',       // pink
-  'call of duty': '#34d399',       // emerald
-  'fortnite': '#f87171',           // rose
-  'udem class': '#f472b6',      // blue-500
-  // add more as needed…
+  'valorant': '#a78bfa',            // purple
+  'cs2': '#22c55e',                 // green
+  'league of legends': '#f87171', // rose
+  'rocket league': '#f97316',     // orange
+  'dota 2': '#ef4444',            // red
+  'overwatch': '#facc15',           // yellow
+  'fifa': '#8b5cf6',                // indigo
+  'apex legends': '#eb8f34',      // pink
+  'call of duty': '#34d399',      // emerald
+  'fortnite': '#f87171',            // rose
+  'udem class': '#f472b6',        // blue-500
 };
+
+// Where the SSE stream lives (make sure you created this route)
+const SSE_URL = '/api/stream/reservations';
 
 // Evenly split width among overlapping events within each day column
 function equalizeTimegridOverlaps() {
@@ -40,7 +42,9 @@ function equalizeTimegridOverlaps() {
 
     // Also normalize the inner event node (defensive)
     const innerEvents = Array.from(
-      col.querySelectorAll<HTMLElement>('.fc-timegrid-event-harness .fc-timegrid-event, .fc-timegrid-event-harness-inset .fc-timegrid-event')
+      col.querySelectorAll<HTMLElement>(
+        '.fc-timegrid-event-harness .fc-timegrid-event, .fc-timegrid-event-harness-inset .fc-timegrid-event'
+      )
     );
 
     // 1) Hard baseline: make every event full-width first
@@ -76,12 +80,18 @@ function equalizeTimegridOverlaps() {
 
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      if (!cluster.length) { cluster = [it]; continue; }
+      if (!cluster.length) {
+        cluster = [it];
+        continue;
+      }
       const overlapsOne = cluster.some(
         (c) => c.rect.bottom > it.rect.top && c.rect.top < it.rect.bottom
       );
       if (overlapsOne) cluster.push(it);
-      else { layoutCluster(cluster); cluster = [it]; }
+      else {
+        layoutCluster(cluster);
+        cluster = [it];
+      }
     }
     if (cluster.length) layoutCluster(cluster);
   });
@@ -126,11 +136,16 @@ function summarizePcLabels(labels: string[]) {
   if (parsed.some((p) => Number.isNaN(p.n))) return `PCs ${labels.join(', ')}`;
   parsed.sort((a, b) => a.n - b.n);
   const out: string[] = [];
-  let s = parsed[0].n, p = s;
+  let s = parsed[0].n,
+    p = s;
   for (let i = 1; i < parsed.length; i++) {
     const cur = parsed[i].n;
-    if (cur === p + 1) { p = cur; continue; }
-    out.push(s === p ? `${s}` : `${s}-${p}`); s = p = cur;
+    if (cur === p + 1) {
+      p = cur;
+      continue;
+    }
+    out.push(s === p ? `${s}` : `${s}-${p}`);
+    s = p = cur;
   }
   out.push(s === p ? `${s}` : `${s}-${p}`);
   return `PCs ${out.join(', ')}`;
@@ -152,7 +167,7 @@ export default function ReservationCalendar() {
   const isAdmin = role === 'ADMIN';
 
   const [events, setEvents] = useState<EventInput[]>([]);
-  const [eventsRaw, setEventsRaw] = useState<EventInput[]>([]); // <— NEW
+  const [eventsRaw, setEventsRaw] = useState<EventInput[]>([]); // <— for colorizing
   const [teams, setTeams] = useState<Team[]>([]);
   const [computers, setComputers] = useState<Computer[]>([]);
 
@@ -169,10 +184,19 @@ export default function ReservationCalendar() {
   // Details
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detail, setDetail] = useState<{
-    id: string; title: string; when: string; computer: string; team: string;
-    createdByName: string; createdByEmail: string; isGroup: boolean;
-    rawTeamId?: string; rawLabels?: string[]; rawComputerIds?: number[];
-    rawStartsAt?: string; rawEndsAt?: string;
+    id: string;
+    title: string;
+    when: string;
+    computer: string;
+    team: string;
+    createdByName: string;
+    createdByEmail: string;
+    isGroup: boolean;
+    rawTeamId?: string;
+    rawLabels?: string[];
+    rawComputerIds?: number[];
+    rawStartsAt?: string;
+    rawEndsAt?: string;
   } | null>(null);
 
   // Edit (group)
@@ -206,7 +230,6 @@ export default function ReservationCalendar() {
             computerIds: ids,
             teamId: g.teamId,
             teamName: g.team?.name ?? g.teamId,
-            // we don’t rely on game here; we’ll look it up from teams
             createdBy: g.createdBy ?? null,
           },
         } as EventInput;
@@ -220,7 +243,9 @@ export default function ReservationCalendar() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  useEffect(() => { scheduleEqualize(); }, [events]);
+  useEffect(() => {
+    scheduleEqualize();
+  }, [events]);
 
   // ----- LOOKUPS (keep your numeric label compare) -----
   const loadLookups = useCallback(async () => {
@@ -240,8 +265,13 @@ export default function ReservationCalendar() {
     );
   }, []);
 
-  useEffect(() => { loadReservations(); }, [loadReservations]);
-  useEffect(() => { loadLookups(); }, [loadLookups]);
+  useEffect(() => {
+    loadReservations();
+  }, [loadReservations]);
+
+  useEffect(() => {
+    loadLookups();
+  }, [loadLookups]);
 
   // Build teamId → normalized game title
   const teamGameById = useMemo(() => {
@@ -254,7 +284,7 @@ export default function ReservationCalendar() {
   useEffect(() => {
     const colored = eventsRaw.map((e) => {
       const teamId = (e.extendedProps as any)?.teamId as string | undefined;
-      const key = teamId ? (teamGameById.get(teamId) || '') : '';
+      const key = teamId ? teamGameById.get(teamId) || '' : '';
       const color = GAME_COLORS[key] ?? '#3b82f6'; // default color
       return { ...e, backgroundColor: color, borderColor: color };
     });
@@ -262,19 +292,82 @@ export default function ReservationCalendar() {
     scheduleEqualize();
   }, [eventsRaw, teamGameById]);
 
+  // ----- REAL-TIME: subscribe to SSE and refetch on reservation events -----
+  const esRef = useRef<EventSource | null>(null);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const connect = () => {
+      // avoid multiple open streams
+      if (esRef.current) {
+        try { esRef.current.close(); } catch {}
+        esRef.current = null;
+      }
+
+      const es = new EventSource(SSE_URL);
+      esRef.current = es;
+
+      es.onmessage = async (ev) => {
+        try {
+          const msg = ev.data ? JSON.parse(ev.data) : null;
+          if (msg?.type && String(msg.type).startsWith('reservation.')) {
+            await loadReservations();
+          }
+        } catch {
+          // ignore parse errors
+        }
+      };
+
+      es.onerror = () => {
+        try { es.close(); } catch {}
+        esRef.current = null;
+        if (!retryTimer.current) {
+          retryTimer.current = setTimeout(() => {
+            retryTimer.current = null;
+            connect();
+          }, 2000);
+        }
+      };
+    };
+
+    connect();
+
+    return () => {
+      if (retryTimer.current) {
+        clearTimeout(retryTimer.current);
+        retryTimer.current = null;
+      }
+      if (esRef.current) {
+        try { esRef.current.close(); } catch {}
+        esRef.current = null;
+      }
+    };
+  }, [loadReservations]);
+
   // ----- OPEN CREATE from selection -----
   const handleSelect = (arg: DateSelectArg) => {
-    if (!isAdmin) { alert('Only admins can create reservations.'); return; }
-    setComputerIds([]); setTeamId('');
-    setSelectStart(arg.start); setSelectEnd(arg.end);
+    if (!isAdmin) {
+      alert('Only admins can create reservations.');
+      return;
+    }
+    setComputerIds([]);
+    setTeamId('');
+    setSelectStart(arg.start);
+    setSelectEnd(arg.end);
     setCreateManual(false);
     setIsCreateOpen(true);
   };
 
   // ----- OPEN CREATE from toolbar button (manual time) -----
   const openManualCreate = () => {
-    if (!isAdmin) { alert('Only admins can create reservations.'); return; }
-    setComputerIds([]); setTeamId('');
+    if (!isAdmin) {
+      alert('Only admins can create reservations.');
+      return;
+    }
+    setComputerIds([]);
+    setTeamId('');
     // default: next whole hour for 1 hour
     const now = new Date();
     now.setMinutes(0, 0, 0);
@@ -282,7 +375,8 @@ export default function ReservationCalendar() {
     const end = new Date(now.getTime() + 60 * 60 * 1000);
     setCreateStartLocal(toLocalInputValue(now.toISOString()));
     setCreateEndLocal(toLocalInputValue(end.toISOString()));
-    setSelectStart(null); setSelectEnd(null);
+    setSelectStart(null);
+    setSelectEnd(null);
     setCreateManual(true);
     setIsCreateOpen(true);
   };
@@ -294,8 +388,8 @@ export default function ReservationCalendar() {
     const ids: number[] = xp?.computerIds ?? [];
     const pcSummary = summarizePcLabels(labels);
     const start = click.event.start ? new Date(click.event.start) : null;
-    const end   = click.event.end ? new Date(click.event.end) : null;
-    const when  = start && end ? `${start.toLocaleString()} → ${end.toLocaleString()}` : '';
+    const end = click.event.end ? new Date(click.event.end) : null;
+    const when = start && end ? `${start.toLocaleString()} → ${end.toLocaleString()}` : '';
     const cb = xp?.createdBy as { name?: string | null; email?: string | null } | null | undefined;
 
     setDetail({
@@ -319,27 +413,33 @@ export default function ReservationCalendar() {
   // ----- CREATE (handles both selection & manual) -----
   const submitReservation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAdmin) { alert('Admin only'); return; }
-    const startsAt = createManual
-      ? fromLocalInputValue(createStartLocal)
-      : selectStart?.toISOString();
-    const endsAt = createManual
-      ? fromLocalInputValue(createEndLocal)
-      : selectEnd?.toISOString();
+    if (!isAdmin) {
+      alert('Admin only');
+      return;
+    }
+    const startsAt = createManual ? fromLocalInputValue(createStartLocal) : selectStart?.toISOString();
+    const endsAt = createManual ? fromLocalInputValue(createEndLocal) : selectEnd?.toISOString();
 
     if (!startsAt || !endsAt || !teamId || computerIds.length === 0) return;
 
     const payload = { teamId, computerIds, startsAt, endsAt };
     const res = await fetch('/api/reservations', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
     const text = await res.text();
     if (!res.ok) {
-      let msg = 'Failed to create reservation'; try { msg = JSON.parse(text)?.error ?? msg; } catch {}
-      alert(msg); return;
+      let msg = 'Failed to create reservation';
+      try {
+        msg = JSON.parse(text)?.error ?? msg;
+      } catch {}
+      alert(msg);
+      return;
     }
     setIsCreateOpen(false);
-    setTeamId(''); setComputerIds([]);
+    setTeamId('');
+    setComputerIds([]);
     await loadReservations();
   };
 
@@ -350,10 +450,15 @@ export default function ReservationCalendar() {
     if (!yes) return;
     const res = await fetch(`/api/reservations?groupId=${encodeURIComponent(detail.id)}`, { method: 'DELETE' });
     if (!res.ok) {
-      let msg = 'Failed to delete reservation'; try { msg = (await res.json()).error ?? msg; } catch {}
-      alert(msg); return;
+      let msg = 'Failed to delete reservation';
+      try {
+        msg = (await res.json()).error ?? msg;
+      } catch {}
+      alert(msg);
+      return;
     }
-    setIsDetailsOpen(false); setDetail(null);
+    setIsDetailsOpen(false);
+    setDetail(null);
     await loadReservations();
   };
 
@@ -369,7 +474,10 @@ export default function ReservationCalendar() {
   const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!detail) return;
-    if (!isAdmin) { alert('Admin only'); return; }
+    if (!isAdmin) {
+      alert('Admin only');
+      return;
+    }
     if (!editTeamId || editComputerIds.length === 0 || !editStartLocal || !editEndLocal) return;
 
     const payload = {
@@ -380,14 +488,22 @@ export default function ReservationCalendar() {
       endsAt: fromLocalInputValue(editEndLocal),
     };
     const res = await fetch('/api/reservations', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
     const text = await res.text();
     if (!res.ok) {
-      let msg = 'Failed to update reservation'; try { msg = JSON.parse(text)?.error ?? msg; } catch {}
-      alert(msg); return;
+      let msg = 'Failed to update reservation';
+      try {
+        msg = JSON.parse(text)?.error ?? msg;
+      } catch {}
+      alert(msg);
+      return;
     }
-    setIsEditOpen(false); setIsDetailsOpen(false); setDetail(null);
+    setIsEditOpen(false);
+    setIsDetailsOpen(false);
+    setDetail(null);
     await loadReservations();
   };
 
@@ -412,17 +528,27 @@ export default function ReservationCalendar() {
         click: openManualCreate,
       },
     } as any;
-  }, [isAdmin]);
+  }, [isAdmin, openManualCreate]);
 
   // ----- NEW: drag/resize handlers -----
   const onEventDrop = async (info: any) => {
-    if (!isAdmin) { info.revert(); return; }
+    if (!isAdmin) {
+      info.revert();
+      return;
+    }
     const ev = info.event;
     const xp: any = ev.extendedProps || {};
     // fallback if end is null (shouldn’t happen with your data)
     const startIso = ev.start ? ev.start.toISOString() : null;
-    const endIso = ev.end ? ev.end.toISOString() : (ev.start ? new Date(ev.start.getTime() + 60 * 60 * 1000).toISOString() : null);
-    if (!startIso || !endIso) { info.revert(); return; }
+    const endIso = ev.end
+      ? ev.end.toISOString()
+      : ev.start
+      ? new Date(ev.start.getTime() + 60 * 60 * 1000).toISOString()
+      : null;
+    if (!startIso || !endIso) {
+      info.revert();
+      return;
+    }
 
     const payload = {
       groupId: String(ev.id),
@@ -453,12 +579,18 @@ export default function ReservationCalendar() {
   };
 
   const onEventResize = async (info: any) => {
-    if (!isAdmin) { info.revert(); return; }
+    if (!isAdmin) {
+      info.revert();
+      return;
+    }
     const ev = info.event;
     const xp: any = ev.extendedProps || {};
     const startIso = ev.start ? ev.start.toISOString() : null;
     const endIso = ev.end ? ev.end.toISOString() : null;
-    if (!startIso || !endIso) { info.revert(); return; }
+    if (!startIso || !endIso) {
+      info.revert();
+      return;
+    }
 
     const payload = {
       groupId: String(ev.id),
@@ -492,9 +624,7 @@ export default function ReservationCalendar() {
     <div className="p-4">
       {/* Banner */}
       <div className="mb-4 flex items-center justify-between rounded-md border p-3 bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
-        <p className="text-sm">
-          {isAdmin ? 'You are signed in as admin.' : 'View only.'}
-        </p>
+        <p className="text-sm">{isAdmin ? 'You are signed in as admin.' : 'View only.'}</p>
         {isAdmin ? (
           <div className="flex items-center gap-2">
             <Link
@@ -537,9 +667,13 @@ export default function ReservationCalendar() {
                   className="w-full rounded border px-3 py-2 bg-white dark:bg-neutral-800"
                   required
                 >
-                  <option value="" disabled>Select a team</option>
+                  <option value="" disabled>
+                    Select a team
+                  </option>
                   {teams.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -548,8 +682,12 @@ export default function ReservationCalendar() {
                 <div className="flex items-center justify-between">
                   <label className="block text-sm mb-1">Computer(s)</label>
                   <div className="flex gap-2 text-xs">
-                    <button type="button" className="underline" onClick={selectAll}>Select all</button>
-                    <button type="button" className="underline" onClick={clearAll}>Clear</button>
+                    <button type="button" className="underline" onClick={selectAll}>
+                      Select all
+                    </button>
+                    <button type="button" className="underline" onClick={clearAll}>
+                      Clear
+                    </button>
                   </div>
                 </div>
                 <select
@@ -564,7 +702,9 @@ export default function ReservationCalendar() {
                   size={8}
                 >
                   {computers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -621,13 +761,21 @@ export default function ReservationCalendar() {
             <h2 className="text-lg font-semibold mb-3">Reservation details</h2>
 
             <div className="space-y-2 text-sm">
-              <div><span className="text-neutral-500">Title:</span> {detail.title}</div>
-              <div><span className="text-neutral-500">When:</span> {detail.when}</div>
-              <div><span className="text-neutral-500">Computer:</span> {detail.computer}</div>
-              <div><span className="text-neutral-500">Team:</span> {detail.team}</div>
               <div>
-                <span className="text-neutral-500">Created by:</span>{' '}
-                {detail.createdByName}{detail.createdByEmail ? ` (${detail.createdByEmail})` : ''}
+                <span className="text-neutral-500">Title:</span> {detail.title}
+              </div>
+              <div>
+                <span className="text-neutral-500">When:</span> {detail.when}
+              </div>
+              <div>
+                <span className="text-neutral-500">Computer:</span> {detail.computer}
+              </div>
+              <div>
+                <span className="text-neutral-500">Team:</span> {detail.team}
+              </div>
+              <div>
+                <span className="text-neutral-500">Created by:</span> {detail.createdByName}
+                {detail.createdByEmail ? ` (${detail.createdByEmail})` : ''}
               </div>
             </div>
 
@@ -635,7 +783,10 @@ export default function ReservationCalendar() {
               <button
                 type="button"
                 className="px-3 py-2 rounded border"
-                onClick={() => { setIsDetailsOpen(false); setDetail(null); }}
+                onClick={() => {
+                  setIsDetailsOpen(false);
+                  setDetail(null);
+                }}
               >
                 Close
               </button>
@@ -675,35 +826,48 @@ export default function ReservationCalendar() {
           <div className="bg-white dark:bg-neutral-900 rounded-xl p-4 w-full max-w-md shadow-xl">
             <h2 className="text-lg font-semibold mb-3">Edit reservation</h2>
 
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              if (!detail) return;
-              if (!isAdmin) { alert('Admin only'); return; }
-              if (!editTeamId || editComputerIds.length === 0 || !editStartLocal || !editEndLocal) return;
-
-              const payload = {
-                groupId: detail.id,
-                teamId: editTeamId,
-                computerIds: editComputerIds,
-                startsAt: fromLocalInputValue(editStartLocal),
-                endsAt: fromLocalInputValue(editEndLocal),
-              };
-              fetch('/api/reservations', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-              })
-              .then(async (res) => {
-                const text = await res.text();
-                if (!res.ok) {
-                  let msg = 'Failed to update reservation'; try { msg = JSON.parse(text)?.error ?? msg; } catch {}
-                  throw new Error(msg);
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!detail) return;
+                if (!isAdmin) {
+                  alert('Admin only');
+                  return;
                 }
-              })
-              .then(async () => {
-                setIsEditOpen(false); setIsDetailsOpen(false); setDetail(null);
-                await loadReservations();
-              })
-              .catch((err) => alert(err.message));
-            }} className="space-y-3">
+                if (!editTeamId || editComputerIds.length === 0 || !editStartLocal || !editEndLocal) return;
+
+                const payload = {
+                  groupId: detail.id,
+                  teamId: editTeamId,
+                  computerIds: editComputerIds,
+                  startsAt: fromLocalInputValue(editStartLocal),
+                  endsAt: fromLocalInputValue(editEndLocal),
+                };
+                fetch('/api/reservations', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload),
+                })
+                  .then(async (res) => {
+                    const text = await res.text();
+                    if (!res.ok) {
+                      let msg = 'Failed to update reservation';
+                      try {
+                        msg = JSON.parse(text)?.error ?? msg;
+                      } catch {}
+                      throw new Error(msg);
+                    }
+                  })
+                  .then(async () => {
+                    setIsEditOpen(false);
+                    setIsDetailsOpen(false);
+                    setDetail(null);
+                    await loadReservations();
+                  })
+                  .catch((err) => alert(err.message));
+              }}
+              className="space-y-3"
+            >
               <div>
                 <label className="block text-sm mb-1">Team</label>
                 <select
@@ -712,9 +876,13 @@ export default function ReservationCalendar() {
                   className="w-full rounded border px-3 py-2 bg-white dark:bg-neutral-800"
                   required
                 >
-                  <option value="" disabled>Select a team</option>
+                  <option value="" disabled>
+                    Select a team
+                  </option>
                   {teams.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -733,7 +901,9 @@ export default function ReservationCalendar() {
                   size={8}
                 >
                   {computers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -796,7 +966,7 @@ export default function ReservationCalendar() {
         eventDrop={onEventDrop}
         eventResize={onEventResize}
         eventDidMount={() => scheduleEqualize()}
-        eventWillUnmount={() => scheduleEqualize()}  // v6 name
+        eventWillUnmount={() => scheduleEqualize()} // v6 name
         eventsSet={() => scheduleEqualize()}
         datesSet={() => scheduleEqualize()}
       />
