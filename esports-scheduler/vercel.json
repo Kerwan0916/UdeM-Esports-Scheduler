@@ -1,5 +1,8 @@
 {
   "functions": {
-    "api/stream/reservations": { "maxDuration": 300, "memory": 512 }
+    "src/app/api/stream/reservations/route.*": {
+      "maxDuration": 300,
+      "memory": 256
+    }
   }
 }
