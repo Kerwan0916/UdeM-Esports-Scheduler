@@ -11,20 +11,20 @@ import Link from 'next/link';
 
 // Map game titles → event color (case-insensitive keys)
 const GAME_COLORS: Record<string, string> = {
-  'valorant': '#a78bfa',            // purple
-  'cs2': '#22c55e',                 // green
-  'league of legends': '#f87171', // rose
-  'rocket league': '#f97316',     // orange
-  'dota 2': '#ef4444',            // red
-  'overwatch': '#facc15',           // yellow
-  'fifa': '#8b5cf6',                // indigo
-  'apex legends': '#eb8f34',      // pink
-  'call of duty': '#34d399',      // emerald
-  'fortnite': '#f87171',            // rose
-  'udem class': '#f472b6',        // blue-500
+  'valorant': '#a78bfa',
+  'cs2': '#22c55e',
+  'league of legends': '#f87171',
+  'rocket league': '#f97316',
+  'dota 2': '#ef4444',
+  'overwatch': '#facc15',
+  'fifa': '#8b5cf6',
+  'apex legends': '#eb8f34',
+  'call of duty': '#34d399',
+  'fortnite': '#f87171',
+  'udem class': '#f472b6',
 };
 
-// Where the SSE stream lives (make sure you created this route)
+// SSE endpoint (server route must exist)
 const SSE_URL = '/api/stream/reservations';
 
 // Evenly split width among overlapping events within each day column
@@ -33,25 +33,19 @@ function equalizeTimegridOverlaps() {
 
   const cols = document.querySelectorAll('.fc-timegrid-col:not(.fc-day-disabled)');
   cols.forEach((col) => {
-    // Both wrappers FullCalendar uses
     const harnesses = Array.from(
-      col.querySelectorAll<HTMLElement>(
-        '.fc-timegrid-event-harness, .fc-timegrid-event-harness-inset'
-      )
+      col.querySelectorAll<HTMLElement>('.fc-timegrid-event-harness, .fc-timegrid-event-harness-inset')
     );
-
-    // Also normalize the inner event node (defensive)
     const innerEvents = Array.from(
       col.querySelectorAll<HTMLElement>(
         '.fc-timegrid-event-harness .fc-timegrid-event, .fc-timegrid-event-harness-inset .fc-timegrid-event'
       )
     );
 
-    // 1) Hard baseline: make every event full-width first
     harnesses.forEach((el) => {
       el.style.left = '0%';
       el.style.right = '0%';
-      el.style.width = ''; // let left/right determine width
+      el.style.width = '';
     });
     innerEvents.forEach((el) => {
       el.style.left = '0%';
@@ -59,7 +53,6 @@ function equalizeTimegridOverlaps() {
       el.style.width = '';
     });
 
-    // 2) Build geometry, sort by vertical position
     const items = harnesses
       .map((el) => ({ el, rect: el.getBoundingClientRect() }))
       .sort((a, b) => a.rect.top - b.rect.top);
@@ -68,13 +61,13 @@ function equalizeTimegridOverlaps() {
 
     function layoutCluster(arr: { el: HTMLElement; rect: DOMRect }[]) {
       const n = arr.length;
-      if (n <= 1) return; // single stays full‐width (baseline already applied)
+      if (n <= 1) return;
       arr.forEach((c, idx) => {
         const leftPct = (idx / n) * 100;
         const rightPct = (1 - (idx + 1) / n) * 100;
         c.el.style.left = leftPct + '%';
         c.el.style.right = rightPct + '%';
-        c.el.style.width = ''; // derived from left/right
+        c.el.style.width = '';
       });
     }
 
@@ -84,9 +77,7 @@ function equalizeTimegridOverlaps() {
         cluster = [it];
         continue;
       }
-      const overlapsOne = cluster.some(
-        (c) => c.rect.bottom > it.rect.top && c.rect.top < it.rect.bottom
-      );
+      const overlapsOne = cluster.some((c) => c.rect.bottom > it.rect.top && c.rect.top < it.rect.bottom);
       if (overlapsOne) cluster.push(it);
       else {
         layoutCluster(cluster);
@@ -97,7 +88,6 @@ function equalizeTimegridOverlaps() {
   });
 }
 
-// small scheduler to run after FC paints
 const scheduleEqualize = () => {
   if (typeof requestAnimationFrame !== 'undefined') {
     requestAnimationFrame(equalizeTimegridOverlaps);
@@ -110,7 +100,7 @@ type Team = { id: string; name: string; gameTitle: string };
 type Computer = { id: number; label: string; isActive: boolean };
 
 type ReservationGroupDTO = {
-  id: string; // groupId or fallback key
+  id: string;
   teamId: string;
   startsAt: string;
   endsAt: string;
@@ -127,7 +117,6 @@ async function fetchJson<T = any>(url: string, init?: RequestInit): Promise<T | 
   return JSON.parse(text) as T;
 }
 
-// summarize like "PCs 1-6, 9"
 function summarizePcLabels(labels: string[]) {
   const parsed = labels.map((l) => {
     const m = l.match(/(\d+)\s*$/);
@@ -151,7 +140,6 @@ function summarizePcLabels(labels: string[]) {
   return `PCs ${out.join(', ')}`;
 }
 
-// datetime-local helpers
 function toLocalInputValue(iso: string) {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -167,11 +155,10 @@ export default function ReservationCalendar() {
   const isAdmin = role === 'ADMIN';
 
   const [events, setEvents] = useState<EventInput[]>([]);
-  const [eventsRaw, setEventsRaw] = useState<EventInput[]>([]); // <— for colorizing
+  const [eventsRaw, setEventsRaw] = useState<EventInput[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [computers, setComputers] = useState<Computer[]>([]);
 
-  // Create (selection-based or manual)
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createManual, setCreateManual] = useState(false);
   const [selectStart, setSelectStart] = useState<Date | null>(null);
@@ -181,7 +168,6 @@ export default function ReservationCalendar() {
   const [createStartLocal, setCreateStartLocal] = useState<string>('');
   const [createEndLocal, setCreateEndLocal] = useState<string>('');
 
-  // Details
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detail, setDetail] = useState<{
     id: string;
@@ -199,14 +185,12 @@ export default function ReservationCalendar() {
     rawEndsAt?: string;
   } | null>(null);
 
-  // Edit (group)
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editTeamId, setEditTeamId] = useState<string>('');
   const [editComputerIds, setEditComputerIds] = useState<number[]>([]);
   const [editStartLocal, setEditStartLocal] = useState<string>('');
   const [editEndLocal, setEditEndLocal] = useState<string>('');
 
-  // FullCalendar ref
   const calendarRef = useRef<FullCalendar | null>(null);
 
   // ----- LOAD (grouped) -----
@@ -247,7 +231,7 @@ export default function ReservationCalendar() {
     scheduleEqualize();
   }, [events]);
 
-  // ----- LOOKUPS (keep your numeric label compare) -----
+  // ----- LOOKUPS -----
   const loadLookups = useCallback(async () => {
     const [t, c] = await Promise.all([
       fetchJson<Team[]>('/api/teams', { cache: 'no-store' }),
@@ -280,19 +264,19 @@ export default function ReservationCalendar() {
     return m;
   }, [teams]);
 
-  // Colorize events based on team game; keep everything else the same
+  // Colorize events based on team game
   useEffect(() => {
     const colored = eventsRaw.map((e) => {
       const teamId = (e.extendedProps as any)?.teamId as string | undefined;
       const key = teamId ? teamGameById.get(teamId) || '' : '';
-      const color = GAME_COLORS[key] ?? '#3b82f6'; // default color
+      const color = GAME_COLORS[key] ?? '#3b82f6';
       return { ...e, backgroundColor: color, borderColor: color };
     });
     setEvents(colored);
     scheduleEqualize();
   }, [eventsRaw, teamGameById]);
 
-  // ----- REAL-TIME: subscribe to SSE and refetch on reservation events -----
+  // ----- REAL-TIME: SSE subscribe → refetch on reservation events -----
   const esRef = useRef<EventSource | null>(null);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -300,29 +284,44 @@ export default function ReservationCalendar() {
     if (typeof window === 'undefined') return;
 
     const connect = () => {
-      // avoid multiple open streams
+      // close old connection if any
       if (esRef.current) {
-        try { esRef.current.close(); } catch {}
+        try {
+          esRef.current.close();
+        } catch {}
         esRef.current = null;
       }
 
+      // create new connection
       const es = new EventSource(SSE_URL);
       esRef.current = es;
+
+      es.onopen = () => {
+        // clear any pending retry timer on successful open
+        if (retryTimer.current) {
+          clearTimeout(retryTimer.current);
+          retryTimer.current = null;
+        }
+      };
 
       es.onmessage = async (ev) => {
         try {
           const msg = ev.data ? JSON.parse(ev.data) : null;
+          // Expect payloads like { type: 'reservation.created' | 'reservation.updated' | 'reservation.deleted', ... }
           if (msg?.type && String(msg.type).startsWith('reservation.')) {
             await loadReservations();
           }
         } catch {
-          // ignore parse errors
+          // ignore malformed messages
         }
       };
 
       es.onerror = () => {
-        try { es.close(); } catch {}
+        try {
+          es.close();
+        } catch {}
         esRef.current = null;
+        // backoff & reconnect
         if (!retryTimer.current) {
           retryTimer.current = setTimeout(() => {
             retryTimer.current = null;
@@ -334,13 +333,24 @@ export default function ReservationCalendar() {
 
     connect();
 
+    // reconnect when tab becomes visible again (helps if host idles the stream)
+    const onVis = () => {
+      if (document.visibilityState === 'visible' && !esRef.current) {
+        connect();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+
     return () => {
+      document.removeEventListener('visibilitychange', onVis);
       if (retryTimer.current) {
         clearTimeout(retryTimer.current);
         retryTimer.current = null;
       }
       if (esRef.current) {
-        try { esRef.current.close(); } catch {}
+        try {
+          esRef.current.close();
+        } catch {}
         esRef.current = null;
       }
     };
@@ -368,7 +378,6 @@ export default function ReservationCalendar() {
     }
     setComputerIds([]);
     setTeamId('');
-    // default: next whole hour for 1 hour
     const now = new Date();
     now.setMinutes(0, 0, 0);
     now.setHours(now.getHours() + 1);
@@ -410,7 +419,7 @@ export default function ReservationCalendar() {
     setIsDetailsOpen(true);
   };
 
-  // ----- CREATE (handles both selection & manual) -----
+  // ----- CREATE -----
   const submitReservation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) {
@@ -510,7 +519,6 @@ export default function ReservationCalendar() {
   const selectAll = () => setComputerIds(computers.map((c) => c.id));
   const clearAll = () => setComputerIds([]);
 
-  // Header toolbar with custom "Create reservation" button (next to title)
   const headerToolbar = useMemo(() => {
     if (!isAdmin) return { left: 'prev,next today', center: 'title', right: 'timeGridWeek,dayGridMonth' };
     return {
@@ -530,7 +538,7 @@ export default function ReservationCalendar() {
     } as any;
   }, [isAdmin, openManualCreate]);
 
-  // ----- NEW: drag/resize handlers -----
+  // ----- drag/resize -----
   const onEventDrop = async (info: any) => {
     if (!isAdmin) {
       info.revert();
@@ -538,13 +546,9 @@ export default function ReservationCalendar() {
     }
     const ev = info.event;
     const xp: any = ev.extendedProps || {};
-    // fallback if end is null (shouldn’t happen with your data)
     const startIso = ev.start ? ev.start.toISOString() : null;
-    const endIso = ev.end
-      ? ev.end.toISOString()
-      : ev.start
-      ? new Date(ev.start.getTime() + 60 * 60 * 1000).toISOString()
-      : null;
+    const endIso =
+      ev.end ? ev.end.toISOString() : ev.start ? new Date(ev.start.getTime() + 60 * 60 * 1000).toISOString() : null;
     if (!startIso || !endIso) {
       info.revert();
       return;
@@ -709,7 +713,6 @@ export default function ReservationCalendar() {
                 </select>
               </div>
 
-              {/* Time controls */}
               {!createManual ? (
                 <div className="text-xs text-neutral-500">
                   {selectStart && selectEnd
@@ -966,7 +969,7 @@ export default function ReservationCalendar() {
         eventDrop={onEventDrop}
         eventResize={onEventResize}
         eventDidMount={() => scheduleEqualize()}
-        eventWillUnmount={() => scheduleEqualize()} // v6 name
+        eventWillUnmount={() => scheduleEqualize()}
         eventsSet={() => scheduleEqualize()}
         datesSet={() => scheduleEqualize()}
       />

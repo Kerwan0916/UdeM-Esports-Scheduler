@@ -1,58 +1,84 @@
+// src/app/api/stream/reservations/route.ts
 import { NextResponse } from 'next/server';
-import { pgPool } from '@/lib/pg';
+import { pgListenPool } from '@/lib/pg';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const CHANNEL = 'reservation_events';
 
 export async function GET() {
-  const client = await pgPool.connect();
+  const client = await pgListenPool.connect();
+
+  let closed = false;
+  let hb: ReturnType<typeof setInterval> | null = null;
 
   const stream = new ReadableStream({
     start(controller) {
-      const send = (obj: any) => {
-        controller.enqueue(
-          `data: ${JSON.stringify(obj)}\n\n`
-        );
+      const sendLine = (line: string) => {
+        if (closed) return;
+        try {
+          controller.enqueue(line);
+        } catch {
+          // controller already closed
+        }
+      };
+      const sendEvent = (obj: unknown) => {
+        sendLine(`data: ${JSON.stringify(obj)}\n\n`);
       };
 
       const onNotification = (msg: any) => {
         try {
           const payload = JSON.parse(msg.payload);
-          send(payload);
+          sendEvent(payload);
         } catch {
           // ignore malformed payloads
         }
       };
 
-      client.on('notification', onNotification);
-
-      client.query(`LISTEN ${CHANNEL}`).catch((e) => {
-        controller.error(e);
-      });
-
-      // heartbeat (keeps connections/proxies alive)
-      const hb = setInterval(() => controller.enqueue(`: ping\n\n`), 25000);
-
-      // cleanup
-      const close = async () => {
-        clearInterval(hb);
-        client.off('notification', onNotification);
+      const cleanup = async () => {
+        if (closed) return;
+        closed = true;
+        if (hb) { clearInterval(hb); hb = null; }
+        try { client.off('notification', onNotification); } catch {}
         try { await client.query(`UNLISTEN ${CHANNEL}`); } catch {}
         client.release();
       };
 
-      // when client closes the stream
-      (controller as any).close = close;
+      client.on('notification', onNotification);
+      client.query(`LISTEN ${CHANNEL}`).catch((e) => {
+        controller.error(e);
+        cleanup();
+      });
+
+      // kick the stream open for proxies
+      sendLine(`: connected\n\n`);
+
+      // heartbeat to keep the connection alive
+      hb = setInterval(() => {
+        if (closed) return;
+        try {
+          controller.enqueue(`: ping\n\n`);
+        } catch {
+          // stream closed; cleanup
+          if (hb) { clearInterval(hb); hb = null; }
+          cleanup();
+        }
+      }, 25_000);
+
+      // If the readable is canceled by the client, clean up.
+      // @ts-expect-error - not typed on controller, but Next supports cancel hooks
+      controller._close = cleanup;
     },
-    cancel(reason) {
-      // @ts-ignore
-      this.close?.();
+    async cancel() {
+      // @ts-expect-error - paired with start() above
+      await this._close?.();
     },
   });
 
   return new NextResponse(stream as any, {
     headers: {
-      'Content-Type': 'text/event-stream',
+      'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
     },
