@@ -16,7 +16,7 @@ async function notify(
   payload: object
 ) {
   try {
-    // Use pg_notify with parameters (safe & reliable)
+    // Use pg_notify with parameters to avoid SQL injection risks
     await pgPool.query('SELECT pg_notify($1::text, $2::text)', [
       CHANNEL,
       JSON.stringify({ type, ...payload }),

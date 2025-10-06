@@ -11,17 +11,17 @@ import Link from 'next/link';
 
 // Map game titles → event color (case-insensitive keys)
 const GAME_COLORS: Record<string, string> = {
-  'valorant': '#a78bfa',
-  'cs2': '#22c55e',
-  'league of legends': '#f87171',
-  'rocket league': '#f97316',
-  'dota 2': '#ef4444',
-  'overwatch': '#facc15',
-  'fifa': '#8b5cf6',
-  'apex legends': '#eb8f34',
-  'call of duty': '#34d399',
-  'fortnite': '#f87171',
-  'udem class': '#f472b6',
+  'valorant': '#a78bfa', // purple
+  'cs2': '#22c55e', // green
+  'league of legends': '#f87171', // red
+  'rocket league': '#f97316', //  orange
+  'dota 2': '#ef4444', // bright red
+  'overwatch': '#facc15', // yellow
+  'fifa': '#8b5cf6', // violet
+  'apex legends': '#eb8f34', // 
+  'call of duty': '#34d399', // teal
+  'fortnite': '#f87171', // red
+  'udem class': '#f472b6', // pink
 };
 
 // SSE endpoint (server route must exist)
@@ -627,7 +627,7 @@ export default function ReservationCalendar() {
   return (
     <div className="p-4">
       {/* Banner */}
-      <div className="mb-4 flex items-center justify-between rounded-md border p-3 bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
+      <div className="mb-4 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
         <p className="text-sm">{isAdmin ? 'You are signed in as admin.' : 'View only.'}</p>
         {isAdmin ? (
           <div className="flex items-center gap-2">
@@ -659,7 +659,7 @@ export default function ReservationCalendar() {
       {/* CREATE MODAL (selection OR manual) */}
       {isCreateOpen && isAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-neutral-900 rounded-xl p-4 w-full max-w-md shadow-xl">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 w-full max-w-md shadow-xl ring-1 ring-black/5">
             <h2 className="text-lg font-semibold mb-3">Create reservation</h2>
 
             <form onSubmit={submitReservation} className="space-y-3">
@@ -760,7 +760,7 @@ export default function ReservationCalendar() {
       {/* DETAILS MODAL */}
       {isDetailsOpen && detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-neutral-900 rounded-xl p-4 w-full max-w-md shadow-xl">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 w-full max-w-md shadow-xl ring-1 ring-black/5">
             <h2 className="text-lg font-semibold mb-3">Reservation details</h2>
 
             <div className="space-y-2 text-sm">
@@ -826,7 +826,7 @@ export default function ReservationCalendar() {
       {/* EDIT MODAL (group) */}
       {isEditOpen && detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-neutral-900 rounded-xl p-4 w-full max-w-md shadow-xl">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 w-full max-w-md shadow-xl ring-1 ring-black/5">
             <h2 className="text-lg font-semibold mb-3">Edit reservation</h2>
 
             <form
@@ -946,33 +946,34 @@ export default function ReservationCalendar() {
           </div>
         </div>
       )}
-
-      <FullCalendar
-        ref={calendarRef}
-        plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-        headerToolbar={headerToolbar as any}
-        customButtons={customButtons as any}
-        initialView="timeGridWeek"
-        selectable={isAdmin}
-        selectMirror
-        height="auto"
-        allDaySlot={false}
-        slotMinTime="07:00:00"
-        slotMaxTime="24:00:00"
-        select={handleSelect}
-        eventClick={handleEventClick}
-        events={events}
-        editable={isAdmin}
-        eventStartEditable={isAdmin}
-        eventDurationEditable={isAdmin}
-        eventResizableFromStart={isAdmin}
-        eventDrop={onEventDrop}
-        eventResize={onEventResize}
-        eventDidMount={() => scheduleEqualize()}
-        eventWillUnmount={() => scheduleEqualize()}
-        eventsSet={() => scheduleEqualize()}
-        datesSet={() => scheduleEqualize()}
-      />
+      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
+          headerToolbar={headerToolbar as any}
+          customButtons={customButtons as any}
+          initialView="timeGridWeek"
+          selectable={isAdmin}
+          selectMirror
+          height="auto"
+          allDaySlot={false}
+          slotMinTime="07:00:00"
+          slotMaxTime="24:00:00"
+          select={handleSelect}
+          eventClick={handleEventClick}
+          events={events}
+          editable={isAdmin}
+          eventStartEditable={isAdmin}
+          eventDurationEditable={isAdmin}
+          eventResizableFromStart={isAdmin}
+          eventDrop={onEventDrop}
+          eventResize={onEventResize}
+          eventDidMount={() => scheduleEqualize()}
+          eventWillUnmount={() => scheduleEqualize()}
+          eventsSet={() => scheduleEqualize()}
+          datesSet={() => scheduleEqualize()}
+        />
+      </div>
     </div>
   );
 }

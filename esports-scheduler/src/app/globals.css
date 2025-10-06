@@ -14,7 +14,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #F0EAD6;
     --foreground: #ededed;
   }
 }
@@ -31,4 +31,116 @@ body {
 /* Optional tidy ups (keep your existing ones) */
 .fc .fc-timegrid-event { margin: 0 1px; }
 .fc .fc-timegrid-event .fc-event-main { overflow: hidden; white-space: normal; }
+
+
+/* === Airbnb-ish FullCalendar theme — additive only === */
+.fc {
+  --fc-small-font-size: 0.875rem;
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: #ffffff;
+  --fc-border-color: rgba(0,0,0,0.06);
+  --fc-today-bg-color: rgba(255,56,92,0.06); /* Airbnb pink wash */
+  --fc-now-indicator-color: #0e0c1a;
+}
+
+/* Header toolbar */
+.fc .fc-toolbar { padding: 0.25rem 0; }
+.fc .fc-toolbar-title { font-weight: 700; letter-spacing: -0.01em; }
+.fc .fc-button {
+  border-radius: 9999px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  color: #222;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+}
+.fc .fc-button:hover { background: #f7f7f7; }
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: #0e0c1a;
+  border-color: #0e0c1a;
+  color: #fff;
+}
+
+/* Grid borders & backgrounds */
+.fc .fc-col-header-cell,
+.fc .fc-timegrid-slot,
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: rgba(0,0,0,0.06);
+}
+.fc .fc-daygrid-day-frame,
+.fc .fc-timegrid-slot {
+  background: #fff;
+}
+
+/* Event cards */
+.fc .fc-event {
+  border: none;
+  border-radius: 12px;
+  background: rgba(255,56,92,0.1);
+  color: #0e0c1a; /* deeper pink text */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  padding: 2px 4px;
+}
+.fc .fc-timegrid-event { margin: 1px 2px; } /* complements your existing margin rule */
+.fc .fc-event .fc-event-main {
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+/* Day headers */
+.fc .fc-col-header-cell-cushion { font-weight: 600; color: #222; }
+
+/* Empty state hint */
+.fc .fc-daygrid-day-events:empty::after {
+  content: "No events";
+  display: block;
+  font-size: 0.75rem;
+  color: #717171;
+  padding: 0.5rem 0.75rem;
+}
+
+/* High-contrast essentials for readability */
+.fc .fc-col-header-cell-cushion,
+.fc .fc-timegrid-slot-label,
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-daygrid-day-number {
+  color: #1a1a1a; /* strong ink */
+}
+
+/* “Today” chip and generic buttons */
+.fc .fc-button {
+  color: #1f2937; /* slate-800 */
+  border: 1px solid rgba(0,0,0,0.15);
+  background: #fff;
+}
+.fc .fc-button:hover { background: #f3f4f6; } /* slate-100 */
+
+/* Active primary (e.g., week/month if using primary styles) */
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: #0e0c1a;
+  border-color: #0e0c1a; 
+  color: #fff;
+}
+
+/* Week range title – ensure visibility on light backgrounds */
+.fc .fc-toolbar-title {
+  color: #111827; /* slate-900 */
+}
+
+/* Event cards remain readable */
+.fc .fc-event .fc-event-main {
+  color: #0e0c1a; /* rose-900-ish, deeper than the bg */
+}
+
+/* Time grid lines stay gentle but visible */
+.fc-theme-standard td, 
+.fc-theme-standard th,
+.fc .fc-timegrid-slot,
+.fc .fc-col-header-cell {
+  border-color: rgba(0,0,0,0.08);
+}
 
