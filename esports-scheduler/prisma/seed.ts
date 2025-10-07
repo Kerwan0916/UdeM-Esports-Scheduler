@@ -15,54 +15,56 @@ async function upsertAdmin(email: string, name: string, plainPassword: string) {
 
 async function main() {
   // --- Admin users (CHANGE THESE PASSWORDS BEFORE USING IN PROD) ---
-  await upsertAdmin('valadmin@udemesports', 'Valorant',   'ChangeMe#1');
-  await upsertAdmin('loladmin@udemesports', 'League of Legends',   'ChangeMe#2');
-  await upsertAdmin('overwatchadmin@udemesports', 'Overwatch', 'ChangeMe#3');
-  await upsertAdmin('rladmin@udemesports', 'Rocket League',  'ChangeMe#4');
-  await upsertAdmin('president@udemesports', 'President',  'ChangeMe#5');
-  await upsertAdmin('scheduler@udemesports', 'Scheduler',  'ChangeMe#6');
+  //await upsertAdmin('valadmin@udemesports', 'Valorant',   'ChangeMe#1');
+  //await upsertAdmin('loladmin@udemesports', 'League of Legends',   'ChangeMe#2');
+  //await upsertAdmin('overwatchadmin@udemesports', 'Overwatch', 'ChangeMe#3');
+  //await upsertAdmin('rladmin@udemesports', 'Rocket League',  'ChangeMe#4');
+  //await upsertAdmin('president@udemesports', 'President',  'ChangeMe#5');
+  //await upsertAdmin('scheduler@udemesports', 'Scheduler',  'ChangeMe#6');
+  await upsertAdmin('secretaryadmin', 'Secretary', 'ChangeMe#7');
+  await upsertAdmin('fgadmin', 'Fighting Games', 'ChangeMe#8');
 
   // --- Computers 1..15 ---
-  const labels = Array.from({ length: 15 }, (_, i) => `PC-${String(i + 1).padStart(2, '0')}`);
-  await Promise.all(
-    labels.map((label) =>
-      prisma.computer.upsert({
-        where: { label },
-        update: {},
-        create: { label, isActive: true },
-      })
-    )
-  );
+  //const labels = Array.from({ length: 15 }, (_, i) => `PC-${String(i + 1).padStart(2, '0')}`);
+  //await Promise.all(
+    //labels.map((label) =>
+      //prisma.computer.upsert({
+        //where: { label },
+        //update: {},
+        //create: { label, isActive: true },
+      //})
+    //)
+  //);
 
   // --- Teams: A & B for each game ---
-  const games = ['Valorant', 'League of Legends', 'Rocket League', 'Overwatch', 'CS2'] as const;
-  const letters = ['A', 'B'] as const;
+  //const games = ['Valorant', 'League of Legends', 'Rocket League', 'Overwatch', 'CS2'] as const;
+  //const letters = ['A', 'B'] as const;
 
-  const teams = games.flatMap((game) =>
-    letters.map((letter) => ({
-      id: `team-${game.toLowerCase().replace(/\s+/g, '-')}-${letter.toLowerCase()}`,
-      name: `${game} ${letter}`,
-      gameTitle: game,
-    }))
-  );
+  //const teams = games.flatMap((game) =>
+    //letters.map((letter) => ({
+      //id: `team-${game.toLowerCase().replace(/\s+/g, '-')}-${letter.toLowerCase()}`,
+      //name: `${game} ${letter}`,
+      //gameTitle: game,
+    //}))
+  //);
 
-  for (const t of teams) {
-    await prisma.team.upsert({
-      where: { id: t.id }, // fixed ID keeps upserts idempotent
-      update: {},
-      create: t,
-    });
-  }
+  //for (const t of teams) {
+    //await prisma.team.upsert({
+      //where: { id: t.id }, // fixed ID keeps upserts idempotent
+      //update: {},
+      //create: t,
+    //});
+  //}
 
   // one-off: ensure the single 'UdeM Class' team exists
-  await prisma.team.upsert({
-    where: { id: 'team-udem-class' }, // pick any stable string id
-    update: { name: 'UdeM Class', gameTitle: 'Class' },
-    create: { id: 'team-udem-class', name: 'UdeM Class', gameTitle: 'Class' },
-  });
+  //await prisma.team.upsert({
+    //where: { id: 'team-udem-class' }, // pick any stable string id
+    //update: { name: 'UdeM Class', gameTitle: 'Class' },
+    //create: { id: 'team-udem-class', name: 'UdeM Class', gameTitle: 'Class' },
+  }; // missing parenthesis when uncommenting
 
-  console.log('Seed complete: 5 admins, 15 computers, A/B teams for 5 games.');
-}
+  //console.log('Seed complete: 5 admins, 15 computers, A/B teams for 5 games.');
+//}
 
 main()
   .catch((e) => {
