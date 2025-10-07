@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -15,7 +16,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #F0EAD6;
-    --foreground: #ededed;
+    --foreground: #cbcaf3;
   }
 }
 
@@ -112,11 +113,11 @@ body {
 
 /* “Today” chip and generic buttons */
 .fc .fc-button {
-  color: #1f2937; /* slate-800 */
+  color: #0e0c1a; /* slate-800 */
   border: 1px solid rgba(0,0,0,0.15);
   background: #fff;
 }
-.fc .fc-button:hover { background: #f3f4f6; } /* slate-100 */
+.fc .fc-button:hover { background: #0e0c1a; } /* slate-100 */
 
 /* Active primary (e.g., week/month if using primary styles) */
 .fc .fc-button-primary:not(:disabled).fc-button-active,
@@ -143,4 +144,3 @@ body {
 .fc .fc-col-header-cell {
   border-color: rgba(0,0,0,0.08);
 }
-

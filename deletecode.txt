@@ -1,0 +1,56 @@
+Add createdby username on reservation details modal : {detail.createdByEmail ? ` (${detail.createdByEmail})` : ''}
+
+code for banner : 
+      {/* Banner */}
+      <div className="mb-4 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+        <p className="text-sm">{isAdmin ? 'You are signed in as admin.' : 'View only.'}</p>
+        {isAdmin ? (
+          <div className="flex items-center gap-2">
+            <Link
+              href="/account/password"
+              className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              Change password
+            </Link>
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => signIn()}
+            className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity"
+          >
+            Admins sign in
+          </button>
+        )}
+      </div>
+
+code for css button hover : 
+@layer components {
+  /* Generic buttons in the toolbar */
+  .fc .fc-toolbar .fc-button:hover,
+  .fc .fc-toolbar .fc-button:focus {
+    color: #0e0c1a !important;        /* <-- change to your dark blue hex if you prefer */
+  }
+
+  /* Primary-themed buttons (FullCalendar’s default theme) */
+  .fc .fc-button-primary:hover,
+  .fc .fc-button-primary:focus {
+    color: #0e0c1a !important;        /* dark text */
+    /* Optional: if the hover bg gets very light, keep it explicitly light and add a border */
+    background-color: #ffffff !important;
+    border-color: rgba(0,0,0,0.12) !important;
+  }
+
+  /* Specific targets (if you only want Today + Create Reservation) */
+  .fc .fc-today-button:hover,
+  .fc .fc-createReservation-button:hover {
+    color: #0e0c1a !important;        /* or your dark blue */
+  }
+}

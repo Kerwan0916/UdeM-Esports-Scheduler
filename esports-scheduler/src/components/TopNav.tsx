@@ -9,19 +9,27 @@ export default function TopNav() {
   const role = (session?.user as any)?.role;
   const isAdmin = !!role && String(role).toLowerCase().includes("admin");
 
+  // Derive a friendly name: prefer display name, fallback to email local-part
+  const rawName =
+    (session?.user as any)?.name ||
+    ((session?.user as any)?.email ? String((session?.user as any)?.email).split("@")[0] : "") ||
+    "";
+
+  const displayName = toTitle(rawName);
+
   return (
     <nav className="mx-auto max-w-7xl xl:max-w-[75vw] px-4 sm:px-6 lg:px-8">
       <div className="flex h-16 items-center justify-between">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2">
-            <Image 
+          <Image
             src={Icon}
             alt="UdeM Esports Scheduler"
             width={32}
             height={32}
             className="rounded-xl"
-            />
-            <span className="text-base font-semibold tracking-tight">Scheduler</span>
+          />
+          <span className="text-base font-semibold tracking-tight">Scheduler</span>
         </Link>
 
         {/* Center status text */}
@@ -31,7 +39,9 @@ export default function TopNav() {
           ) : isAdmin ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-800 ring-1 ring-emerald-200">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Admin view
+              {/* Name + Admin View */}
+              <span className="font-semibold">{displayName}</span>
+              <span>Admin View</span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-gray-800 ring-1 ring-gray-200">
@@ -41,15 +51,25 @@ export default function TopNav() {
           )}
         </div>
 
-        {/* Right: sign in/out, wired to next-auth */}
-        <div>
+        {/* Right: auth controls */}
+        <div className="flex items-center gap-2">
           {status === "loading" ? null : session ? (
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="px-3 py-1.5 rounded-full border hover:bg-[#F0EAD6] hover:text-[#0e0c1a] transition text-sm"
-            >
-              Sign out
-            </button>
+            <>
+              {/* Change password (only when signed in) */}
+              <button
+                onClick={() => (window.location.href = "/account/password")}
+                className="px-3 py-1.5 rounded-full border hover:bg-[#F0EAD6] hover:text-[#0e0c1a] transition text-sm"
+              >
+                Change password
+              </button>
+
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="px-3 py-1.5 rounded-full border hover:bg-[#F0EAD6] hover:text-[#0e0c1a] transition text-sm"
+              >
+                Sign out
+              </button>
+            </>
           ) : (
             <button
               onClick={() => signIn()}
@@ -62,4 +82,15 @@ export default function TopNav() {
       </div>
     </nav>
   );
+}
+
+/** Title-case helper: "valadmin" -> "Valadmin", "valorant admin" -> "Valorant Admin" */
+function toTitle(s: string) {
+  if (!s) return "";
+  return s
+    .replace(/[-_.]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
