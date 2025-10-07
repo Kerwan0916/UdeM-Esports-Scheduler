@@ -15,7 +15,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  const me = session?.user as any; // keep as-is to avoid touching your typings
+  const me = session?.user as any; // keep as-is to avoid touching typings
   if (!me) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (me.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -31,7 +31,7 @@ export async function DELETE(
   // Delete
   await prisma.reservation.delete({ where: { id } });
 
-  // ← added: notify listeners (non-blocking; ignore errors)
+  // added: notify listeners (non-blocking; ignore errors)
   try {
     const payload = JSON.stringify({ type: 'reservation.deleted', id });
     await pgPool.query('select pg_notify($1, $2)', [CHANNEL, payload]);

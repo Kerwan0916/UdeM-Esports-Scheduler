@@ -2,7 +2,7 @@
 import NextAuth from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 
-export const runtime = 'nodejs';       // <- important (Prisma/bcrypt need Node)
+export const runtime = 'nodejs';       // Prisma/bcrypt need Node
 export const dynamic = 'force-dynamic';
 
 const handler = NextAuth(authOptions);

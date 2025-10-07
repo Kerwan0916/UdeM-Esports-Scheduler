@@ -20,8 +20,8 @@ export default function AuthButton() {
         </span>
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
-          className="px-3 py-1.5 rounded-lg border hover:bg-gray-50"
-        >
+          className="px-3 py-1.5 rounded-full border hover:bg-black/5 transition"
+          >
           Sign out
         </button>
       </div>
@@ -30,7 +30,7 @@ export default function AuthButton() {
 
   // Not signed in → go to the sign-in page
   return (
-    <Link href="/signin" className="px-3 py-1.5 rounded-lg border hover:bg-gray-50">
+    <Link href="/signin" className="px-3 py-1.5 rounded-full border hover:bg-black/5 transition">
       Sign in
     </Link>
   );

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // or '../../../lib/prisma' if you didn't set the @ alias
+import { prisma } from '@/lib/prisma'; 
 
 // Optional: set in .env -> NEXT_PUBLIC_DEFAULT_USER_EMAIL=admin@example.com
 const TARGET_EMAIL = process.env.NEXT_PUBLIC_DEFAULT_USER_EMAIL ?? 'admin@example.com';
