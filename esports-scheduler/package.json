@@ -2,7 +2,6 @@
   "name": "esports-scheduler",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.0.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,6 +18,7 @@
     "@fullcalendar/react": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.10",
     "@prisma/client": "^6.14.0",
+    "@prisma/extension-pulse": "^1.2.2",
     "bcryptjs": "^3.0.2",
     "next": "15.4.6",
     "next-auth": "^4.24.11",
