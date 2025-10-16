@@ -18,7 +18,6 @@
     "@fullcalendar/react": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.10",
     "@prisma/client": "^6.14.0",
-    "@prisma/extension-pulse": "^1.2.2",
     "bcryptjs": "^3.0.2",
     "next": "15.4.6",
     "next-auth": "^4.24.11",

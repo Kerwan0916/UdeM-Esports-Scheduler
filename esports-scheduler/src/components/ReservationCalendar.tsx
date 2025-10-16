@@ -756,31 +756,35 @@ export default function ReservationCalendar() {
       {/* DETAILS MODAL */}
       {isDetailsOpen && detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 w-full max-w-md shadow-xl ring-1 ring-black/5">
+          <div className="bg-white dark:bg-neutral-900
+                text-slate-900 dark:text-white
+                rounded-2xl p-5 w-full max-w-md shadow-xl ring-1 ring-black/5">
             <h2 className="text-lg font-semibold mb-3">Reservation details</h2>
 
             <div className="space-y-2 text-sm">
               <div>
-                <span className="text-neutral-500">Title:</span> {detail.title}
+                <span className="text-neutral-600 dark:text-neutral-400">Title:</span> {detail.title}
               </div>
               <div>
-                <span className="text-neutral-500">When:</span> {detail.when}
+                <span className="text-neutral-600 dark:text-neutral-400">When:</span> {detail.when}
               </div>
               <div>
-                <span className="text-neutral-500">Computer:</span> {detail.computer}
+                <span className="text-neutral-600 dark:text-neutral-400">Computer:</span> {detail.computer}
               </div>
               <div>
-                <span className="text-neutral-500">Team:</span> {detail.team}
+                <span className="text-neutral-600 dark:text-neutral-400">Team:</span> {detail.team}
               </div>
               <div>
-                <span className="text-neutral-500">Created by:</span> {detail.createdByName}
+                <span className="text-neutral-600 dark:text-neutral-400">Created by:</span> {detail.createdByName} Admin
               </div>
             </div>
 
             <div className="flex gap-2 justify-end pt-4">
               <button
                 type="button"
-                className="px-3 py-2 rounded border border-white/30 text-white hover:bg-white/10"
+                className="px-3 py-2 rounded border
+                  border-slate-300 text-slate-700 hover:bg-slate-50
+                  dark:border-white/30 dark:text-white dark:hover:bg-white/10"
                 onClick={() => {
                   setIsDetailsOpen(false);
                   setDetail(null);
@@ -986,7 +990,7 @@ export default function ReservationCalendar() {
           selectMirror
           height="auto"
           allDaySlot={false}
-          slotMinTime="07:00:00"
+          slotMinTime="09:00:00"
           slotMaxTime="24:00:00"
           select={handleSelect}
           eventClick={handleEventClick}
