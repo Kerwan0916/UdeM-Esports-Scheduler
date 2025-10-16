@@ -2,9 +2,9 @@
 
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+    --background: #F0EAD6;
+    --foreground: #F0EAD6;
+  }
 
 @theme inline {
   --color-background: var(--background);
@@ -16,7 +16,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #F0EAD6;
-    --foreground: #cbcaf3;
+    --foreground: #F0EAD6;
   }
 }
 
@@ -71,7 +71,7 @@ body {
 }
 .fc .fc-daygrid-day-frame,
 .fc .fc-timegrid-slot {
-  background: #fff;
+  background: #ffffff;
 }
 
 /* Event cards */
@@ -143,4 +143,10 @@ body {
 .fc .fc-timegrid-slot,
 .fc .fc-col-header-cell {
   border-color: rgba(0,0,0,0.08);
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  color-scheme: light;      /* make inputs/selects render light by default */
 }

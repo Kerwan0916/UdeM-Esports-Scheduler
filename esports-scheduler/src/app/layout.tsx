@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <footer className="border-t border-black/5">
             <div className="mx-auto max-w-7xl xl:max-w-[75vw] px-4 sm:px-6 lg:px-8 py-6 text-sm text-[#717171]">
-              © {new Date().getFullYear()} UdeM Esports Scheduler
+              © {new Date().getFullYear()} Kevin Fuss for UdeM Esports
             </div>
           </footer>
         </Providers>
