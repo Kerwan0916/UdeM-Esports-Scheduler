@@ -11,17 +11,20 @@ import Link from 'next/link';
 
 // Map game titles → event color (case-insensitive keys)
 const GAME_COLORS: Record<string, string> = {
-  'valorant': '#a78bfa', // purple
+  'valorant': '#9636D9', // purple
   'cs2': '#22c55e', // green
   'league of legends': '#f87171', // red
   'rocket league': '#f97316', //  orange
-  'dota 2': '#ef4444', // bright red
+  //'dota 2': '#ef4444', // bright red
   'overwatch': '#facc15', // yellow
-  'fifa': '#8b5cf6', // violet
-  'apex legends': '#eb8f34', // 
-  'call of duty': '#34d399', // teal
-  'fortnite': '#f87171', // red
-  'udem class': '#f472b6', // pink
+  //'fifa': '#8b5cf6', // violet
+  //'call of duty': '#34d399', // teal
+  //'fortnite': '#f87171', // red
+  'super smash bros': '#7AE810', // lime
+  'udem class': '#7C8DF2', // blue
+  'free period': '#34d399', // teal
+  'special events': '#EB42D5', // red
+  'executives': '#DB0745', // violet
 };
 
 // SSE endpoint (server route must exist)
