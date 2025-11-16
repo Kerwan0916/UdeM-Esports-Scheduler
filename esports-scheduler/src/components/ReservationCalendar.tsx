@@ -25,6 +25,7 @@ const GAME_COLORS: Record<string, string> = {
   'free period': '#34d399', // teal
   'special events': '#EB42D5', // red
   'executives': '#DB0745', // violet
+  'staff': '#9CA3AF', // gray
 };
 
 // SSE endpoint (server route must exist)
