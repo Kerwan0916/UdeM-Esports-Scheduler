@@ -39,7 +39,7 @@ function SignInForm() {
   return (
     <div className="flex min-h-[80vh] flex-col justify-center py-10 sm:px-6 lg:px-8 text-[#0e0c1a]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-white">
+        <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-black">
           Sign in to your account
         </h2>
       </div>
