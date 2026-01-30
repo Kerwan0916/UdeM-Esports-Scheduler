@@ -18,8 +18,8 @@ const GAME_COLORS: Record<string, string> = {
   //'dota 2': '#ef4444', // bright red
   'overwatch': '#facc15', // yellow
   //'fifa': '#8b5cf6', // violet
-  //'call of duty': '#34d399', // teal
-  //'fortnite': '#f87171', // red
+  'rainbow six': '#34d399', // teal
+  'fortnite': '#f87171', // red
   'super smash bros': '#7AE810', // lime
   'udem class': '#7C8DF2', // blue
   'free period': '#34d399', // teal

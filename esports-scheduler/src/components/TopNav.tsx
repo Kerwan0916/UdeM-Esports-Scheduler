@@ -53,6 +53,14 @@ export default function TopNav() {
 
         {/* Right: auth controls */}
         <div className="flex items-center gap-2">
+
+          <Link
+            href="/"
+            className="px-3 py-1.5 rounded-full border hover:bg-[#F0EAD6] hover:text-[#0e0c1a] transition text-sm"
+          >
+            Calendar
+          </Link>
+
           <Link
             href="/mapview"
             className="px-3 py-1.5 rounded-full border hover:bg-[#F0EAD6] hover:text-[#0e0c1a] transition text-sm"
@@ -62,13 +70,13 @@ export default function TopNav() {
 
           {status === "loading" ? null : session ? (
             <>
-              {/* Change password (only when signed in) */}
-              <button
-                onClick={() => (window.location.href = "/account/password")}
+              {/* NEW: Profile Button (Replaces Change Password) */}
+              <Link
+                href="/profile"
                 className="px-3 py-1.5 rounded-full border hover:bg-[#F0EAD6] hover:text-[#0e0c1a] transition text-sm"
               >
-                Change password
-              </button>
+                Profile
+              </Link>
 
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}

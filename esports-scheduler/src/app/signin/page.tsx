@@ -1,6 +1,7 @@
 'use client';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function SignInPage() {
   const { data: session, status } = useSession();
@@ -73,6 +74,12 @@ export default function SignInPage() {
             </button>
           </div>
         </form>
+        <div className="mt-6 border-t pt-4 text-center text-sm text-slate-500">
+          Don't have an account?{' '}
+          <Link href="/signup" className="font-medium text-slate-900 hover:underline">
+            Sign up
+          </Link>
+        </div>
       </div>
     </div>
   );
