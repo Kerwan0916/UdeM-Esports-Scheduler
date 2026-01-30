@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function SignInPage() {
+// 1. Create a sub-component for the logic that needs search params
+function SignInForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // This causes the build error if not suspended
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 1. Check if there's a specific place to go after login (like the scan page)
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const message = searchParams.get("message");
 
@@ -31,7 +31,6 @@ export default function SignInPage() {
       setError("Invalid email or password");
       setLoading(false);
     } else {
-      // 2. Redirect to the callback URL (Scan page) instead of just "/"
       router.push(callbackUrl);
       router.refresh();
     }
@@ -39,17 +38,14 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-[80vh] flex-col justify-center py-10 sm:px-6 lg:px-8 text-[#0e0c1a]">
-
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-black">
+        <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-white">
           Sign in to your account
         </h2>
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-[480px]">
-        {/* Mobile-optimized container */}
         <div className="bg-white px-6 py-12 shadow sm:rounded-2xl sm:px-12">
-
           {message && (
             <div className="mb-6 rounded-xl bg-green-50 p-4 text-sm text-green-700 text-center">
               {message}
@@ -112,7 +108,6 @@ export default function SignInPage() {
             <p className="text-center text-sm text-gray-500">
               Don't have an account?{" "}
               <Link
-                // Pass the callbackUrl to signup too, so it survives registration!
                 href={`/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`}
                 className="font-semibold text-black hover:underline"
               >
@@ -123,5 +118,14 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 2. Export the main page wrapped in Suspense
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center text-white">Loading...</div>}>
+      <SignInForm />
+    </Suspense>
   );
 }
