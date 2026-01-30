@@ -36,7 +36,7 @@ export default function StatusPage() {
                     </div>
 
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">
-                        {isWelcome ? 'Welcome to the Arena!' : 'See you next time!'}
+                        {isWelcome ? 'Welcome to the Blue Box!' : 'See you next time!'}
                     </h1>
 
                     <p className="text-base text-gray-500 mb-8">
