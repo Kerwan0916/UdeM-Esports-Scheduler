@@ -1,84 +1,125 @@
-'use client';
-import { useSession, signIn, signOut } from 'next-auth/react';
-import { useState } from 'react';
-import Link from 'next/link';
+"use client";
+
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 export default function SignInPage() {
-  const { data: session, status } = useSession();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  if (status === 'loading') return <div className="p-6">Loading…</div>;
+  // 1. Check if there's a specific place to go after login (like the scan page)
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const message = searchParams.get("message");
 
-  if (session) {
-    return (
-      <div className="mx-auto max-w-md p-6 space-y-4 text-[#0e0c1a]">
-        <div className="text-sm">
-          Signed in as {(session.user as any)?.email} ({(session.user as any)?.role})
-        </div>
-        <button
-          className="rounded-full border px-4 py-2 text-sm hover:bg-neutral-50"
-          onClick={() => signOut({ callbackUrl: '/' })}
-        >
-          Sign out
-        </button>
-      </div>
-    );
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const res = await signIn("credentials", {
+      redirect: false,
+      email: form.email,
+      password: form.password,
+    });
+
+    if (res?.error) {
+      setError("Invalid email or password");
+      setLoading(false);
+    } else {
+      // 2. Redirect to the callback URL (Scan page) instead of just "/"
+      router.push(callbackUrl);
+      router.refresh();
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-md p-6 text-[#0e0c1a]">
-      {/* White card wrapper for Airbnb look */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            signIn('credentials', { email, password, redirect: true, callbackUrl: '/' });
-          }}
-        >
-          <h1 className="text-2xl font-semibold tracking-tight">Sign In</h1>
+    <div className="flex min-h-[80vh] flex-col justify-center py-10 sm:px-6 lg:px-8 text-[#0e0c1a]">
 
-          <input
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
-                       text-slate-900 placeholder:text-slate-500
-                       focus:outline-none focus:ring-2 focus:ring-slate-200"
-            placeholder="username"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-black">
+          Sign in to your account
+        </h2>
+      </div>
 
-          <input
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2
-                       text-slate-900 placeholder:text-slate-500
-                       focus:outline-none focus:ring-2 focus:ring-slate-200"
-            placeholder="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-[480px]">
+        {/* Mobile-optimized container */}
+        <div className="bg-white px-6 py-12 shadow sm:rounded-2xl sm:px-12">
 
-          <div className="flex items-center gap-2 pt-2">
-            <button
-              type="submit"
-              className="rounded-full bg-[#1a1a1a] px-5 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              onClick={() => { setEmail(''); setPassword(''); }}
-              className="rounded-full border px-4 py-2 text-sm hover:bg-neutral-50"
-            >
-              Clear
-            </button>
+          {message && (
+            <div className="mb-6 rounded-xl bg-green-50 p-4 text-sm text-green-700 text-center">
+              {message}
+            </div>
+          )}
+
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600 text-center">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium leading-6 text-gray-900">
+                Email address
+              </label>
+              <div className="mt-2">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="block w-full rounded-xl border-0 py-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-900">
+                Password
+              </label>
+              <div className="mt-2">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="block w-full rounded-xl border-0 py-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full justify-center rounded-full bg-[#1a1a1a] px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:opacity-70"
+              >
+                {loading ? "Signing in..." : "Sign in"}
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            <p className="text-center text-sm text-gray-500">
+              Don't have an account?{" "}
+              <Link
+                // Pass the callbackUrl to signup too, so it survives registration!
+                href={`/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+                className="font-semibold text-black hover:underline"
+              >
+                Sign up
+              </Link>
+            </p>
           </div>
-        </form>
-        <div className="mt-6 border-t pt-4 text-center text-sm text-slate-500">
-          Don't have an account?{' '}
-          <Link href="/signup" className="font-medium text-slate-900 hover:underline">
-            Sign up
-          </Link>
         </div>
       </div>
     </div>
