@@ -2,13 +2,11 @@
 
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-// 1. Create a sub-component for the logic that needs search params
 function SignInForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams(); // This causes the build error if not suspended
+  const searchParams = useSearchParams();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,14 +29,14 @@ function SignInForm() {
       setError("Invalid email or password");
       setLoading(false);
     } else {
-      //router.push(callbackUrl);
-      //router.refresh();
+      // Force hard reload to prevent double-fire bug
       window.location.href = callbackUrl;
     }
   };
 
   return (
     <div className="flex min-h-[80vh] flex-col justify-center py-10 sm:px-6 lg:px-8 text-[#0e0c1a]">
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-black">
           Sign in to your account
@@ -47,6 +45,7 @@ function SignInForm() {
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-[480px]">
         <div className="bg-white px-6 py-12 shadow sm:rounded-2xl sm:px-12">
+
           {message && (
             <div className="mb-6 rounded-xl bg-green-50 p-4 text-sm text-green-700 text-center">
               {message}
@@ -72,7 +71,8 @@ function SignInForm() {
                   required
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="block w-full rounded-xl border-0 py-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 text-base"
+                  // Added 'px-4' here 👇
+                  className="block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 text-base"
                 />
               </div>
             </div>
@@ -89,7 +89,8 @@ function SignInForm() {
                   required
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="block w-full rounded-xl border-0 py-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 text-base"
+                  // Added 'px-4' here 👇
+                  className="block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 text-base"
                 />
               </div>
             </div>
@@ -122,7 +123,6 @@ function SignInForm() {
   );
 }
 
-// 2. Export the main page wrapped in Suspense
 export default function SignInPage() {
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center text-white">Loading...</div>}>

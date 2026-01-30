@@ -3,10 +3,13 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import Icon from "@/app/icon.png";
+import { usePathname } from "next/navigation";
 
 export default function TopNav() {
   const { data: session, status } = useSession();
   const role = (session?.user as any)?.role;
+
+  // Robust check: works even if Role is Enum or String
   const isAdmin = !!role && String(role).toLowerCase().includes("admin");
 
   const rawName =
@@ -16,10 +19,8 @@ export default function TopNav() {
 
   const displayName = toTitle(rawName);
 
-  // 🎨 THE FIX: Explicitly using the cream color (#F0EAD6) for the border and text.
-  // This creates the "Ghost Button" style: Yellow Outline -> Filled Yellow on Hover.
+  // 🎨 THE GHOST BUTTON STYLE
   const baseClass = "rounded-full border border-[#F0EAD6] text-[#F0EAD6] hover:bg-[#F0EAD6] hover:text-[#0e0c1a] transition";
-
   const iconBtnClass = `${baseClass} p-2 flex items-center justify-center`;
   const textBtnClass = `${baseClass} px-3 py-1.5 text-sm font-medium`;
 
@@ -43,21 +44,18 @@ export default function TopNav() {
           {status === "loading" ? (
             <span className="text-gray-400">Loading…</span>
           ) : isAdmin ? (
-            // ADMIN: Light Green Background
             <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-800 ring-1 ring-emerald-200">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               <span className="font-semibold">{displayName}</span>
               <span className="opacity-75">Admin View</span>
             </span>
           ) : session ? (
-            // PLAYER: Light Sapphire Background
             <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-blue-800 ring-1 ring-blue-200">
               <span className="h-2 w-2 rounded-full bg-blue-500" />
               <span className="font-semibold">{displayName}</span>
               <span className="opacity-75">Player View</span>
             </span>
           ) : (
-            // GUEST: Light Gray Background
             <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-gray-800 ring-1 ring-gray-200">
               <span className="h-2 w-2 rounded-full bg-gray-500" />
               View only
@@ -67,6 +65,16 @@ export default function TopNav() {
 
         {/* Right: Navigation & Auth */}
         <div className="flex items-center gap-2">
+
+          {/* 👇 LOGS BUTTON (Now Visible & Consistent) */}
+          {isAdmin && (
+            <Link
+              href="/admin/logs"
+              className={textBtnClass} // Matches "Computer Map" style
+            >
+              Logs
+            </Link>
+          )}
 
           {/* Calendar Icon Button */}
           <Link
