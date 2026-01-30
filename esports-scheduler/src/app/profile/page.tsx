@@ -4,6 +4,29 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/authOptions";
 
+// Helper to force Montreal Timezone
+function formatTime(date: Date | string | null) {
+    if (!date) return "—"; // Return dash if null
+
+    return new Date(date).toLocaleTimeString("en-US", {
+        timeZone: "America/New_York", // Forces EST/EDT (Montreal time)
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    });
+}
+
+function formatDate(date: Date | string | null) {
+    if (!date) return "—";
+
+    return new Date(date).toLocaleDateString("en-US", {
+        timeZone: "America/New_York",
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+    });
+}
+
 export default async function ProfilePage() {
     const session = await getServerSession(authOptions);
 
@@ -65,24 +88,9 @@ export default async function ProfilePage() {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {logs.map((log) => {
-                                    // Formatting Date/Time (Adjust timezone if needed, defaults to Server Time)
-                                    const dateStr = log.checkIn.toLocaleDateString("en-CA", {
-                                        month: "long",
-                                        day: "numeric",
-                                        year: "numeric",
-                                    });
-
-                                    const arrivalStr = log.checkIn.toLocaleTimeString("en-CA", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                    });
-
-                                    const departureStr = log.checkOut
-                                        ? log.checkOut.toLocaleTimeString("en-CA", {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })
-                                        : "—";
+                                    const dateStr = formatDate(log.checkIn);
+                                    const arrivalStr = formatTime(log.checkIn);
+                                    const departureStr = formatTime(log.checkOut);
 
                                     const isActive = !log.checkOut;
 
