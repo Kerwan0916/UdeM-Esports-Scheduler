@@ -18,8 +18,8 @@ const GAME_COLORS: Record<string, string> = {
   //'dota 2': '#ef4444', // bright red
   'overwatch': '#facc15', // yellow
   //'fifa': '#8b5cf6', // violet
-  //'call of duty': '#34d399', // teal
-  //'fortnite': '#f87171', // red
+  'rainbow six': '#34d399', // teal
+  'fortnite': '#f87171', // red
   'super smash bros': '#7AE810', // lime
   'udem class': '#7C8DF2', // blue
   'free period': '#34d399', // teal
@@ -201,7 +201,7 @@ export default function ReservationCalendar() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState<string>('Are you sure?');
   const [confirmBody, setConfirmBody] = useState<string>('This action cannot be undone.');
-  const confirmResolveRef = useRef<(v: boolean) => void>(() => {});
+  const confirmResolveRef = useRef<(v: boolean) => void>(() => { });
 
   function askConfirm(opts?: { title?: string; body?: string }) {
     if (opts?.title) setConfirmTitle(opts.title);
@@ -313,7 +313,7 @@ export default function ReservationCalendar() {
       if (esRef.current) {
         try {
           esRef.current.close();
-        } catch {}
+        } catch { }
         esRef.current = null;
       }
 
@@ -344,7 +344,7 @@ export default function ReservationCalendar() {
       es.onerror = () => {
         try {
           es.close();
-        } catch {}
+        } catch { }
         esRef.current = null;
         // backoff & reconnect
         if (!retryTimer.current) {
@@ -375,7 +375,7 @@ export default function ReservationCalendar() {
       if (esRef.current) {
         try {
           esRef.current.close();
-        } catch {}
+        } catch { }
         esRef.current = null;
       }
     };
@@ -467,7 +467,7 @@ export default function ReservationCalendar() {
       let msg = 'Failed to create reservation';
       try {
         msg = JSON.parse(text)?.error ?? msg;
-      } catch {}
+      } catch { }
       alert(msg);
       return;
     }
@@ -492,7 +492,7 @@ export default function ReservationCalendar() {
       let msg = 'Failed to delete reservation';
       try {
         msg = (await res.json()).error ?? msg;
-      } catch {}
+      } catch { }
       alert(msg);
       return;
     }
@@ -536,7 +536,7 @@ export default function ReservationCalendar() {
       let msg = 'Failed to update reservation';
       try {
         msg = JSON.parse(text)?.error ?? msg;
-      } catch {}
+      } catch { }
       alert(msg);
       return;
     }
@@ -860,7 +860,7 @@ export default function ReservationCalendar() {
                       let msg = 'Failed to update reservation';
                       try {
                         msg = JSON.parse(text)?.error ?? msg;
-                      } catch {}
+                      } catch { }
                       throw new Error(msg);
                     }
                   })

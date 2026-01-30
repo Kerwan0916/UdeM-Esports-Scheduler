@@ -8,9 +8,10 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
   providers: [
     Credentials({
-      name: 'Admin Login',
+      // Changed name from 'Admin Login' to generic 'Credentials'
+      name: 'Credentials',
       credentials: {
-        email:    { label: 'Email', type: 'text' },
+        email: { label: 'Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(creds) {
@@ -22,7 +23,8 @@ export const authOptions: NextAuthOptions = {
           select: { id: true, email: true, name: true, role: true, passwordHash: true },
         });
 
-        if (!user || user.role !== 'ADMIN' || !user.passwordHash) return null;
+        // CHANGED: Removed "user.role !== 'ADMIN'" check
+        if (!user || !user.passwordHash) return null;
 
         const ok = await bcrypt.compare(creds.password, user.passwordHash);
         if (!ok) return null;

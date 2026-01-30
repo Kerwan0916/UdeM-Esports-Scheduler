@@ -31,8 +31,21 @@ model User {
   accounts           Account[]
   sessions           Session[]
 
+  presenceLogs       PresenceLog[]
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+model PresenceLog {
+  id                 String   @id @default(cuid())
+  user               User     @relation(fields: [userId], references: [id])
+  userId             String
+
+  checkIn            DateTime @default(now())
+  checkOut           DateTime?
+
+  @@index([userId, checkIn])
 }
 
 model Team {
