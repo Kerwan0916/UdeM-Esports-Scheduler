@@ -7,75 +7,54 @@ export default async function ScanHandlerPage({ params }: { params: { id: string
     const session = await getServerSession(authOptions);
 
     // 1. AUTH GUARD
+    // FIX: Redirect to "/signin" instead of "/", so they actually see the login form.
     if (!session || !session.user) {
+        // We encode the current scan URL so we can send them back here after login
         const callbackUrl = `/scan/${params.id}`;
-        redirect(`/?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+        redirect(`/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
     }
 
     const userId = (session.user as any).id;
-    const computerId = parseInt(params.id, 10);
 
-    // Validate ID format (security)
-    if (isNaN(computerId)) {
-        return (
-            <div className="flex h-screen items-center justify-center p-6 text-center">
-                <h1 className="text-xl font-bold text-red-600">Invalid QR Code</h1>
-            </div>
-        );
-    }
+    // 2. REMOVED VALIDATION
+    // We deleted the "parseInt" and "isNaN" checks. 
+    // Now it accepts "toggle", "entry", "door", or anything else.
 
     try {
-        // 2. VALIDATION (Optional Security Check)
-        // We check if the QR code is real, but we WON'T save this ID to the log.
-        const computer = await prisma.computer.findUnique({
-            where: { id: computerId },
-        });
-
-        if (!computer) {
-            return (
-                <div className="flex h-screen items-center justify-center p-6 text-center">
-                    <h1 className="text-xl font-bold text-red-600">Invalid Station</h1>
-                </div>
-            );
-        }
-
-        // 3. CHECK STATUS (The "Punch Clock" Logic)
+        // 3. CHECK STATUS (Punch Clock Logic)
+        // Find if the user has an open session (checkOut is null)
         const activeLog = await prisma.presenceLog.findFirst({
             where: {
                 userId: userId,
-                checkOut: null, // User is currently here
+                checkOut: null,
             },
         });
 
-        // --- SCENARIO A: User is ALREADY Checked In ---
         if (activeLog) {
+            // --- USER IS ALREADY IN -> CHECK THEM OUT ---
             const now = new Date();
+
+            // Auto-fix: If session is older than 12 hours, close it and start fresh
             const hoursActive = (now.getTime() - activeLog.checkIn.getTime()) / (1000 * 60 * 60);
 
-            // If session is > 12 hours, assume they forgot to checkout yesterday.
-            // We close the old one, and START A NEW ONE (Auto-fix).
             if (hoursActive > 12) {
-                // 1. Close old
+                // Close stale session
                 await prisma.presenceLog.update({
                     where: { id: activeLog.id },
                     data: { checkOut: now },
                 });
 
-                // 2. Open new (No computerId saved)
+                // Open new session
                 await prisma.presenceLog.create({
                     data: {
                         userId: userId,
                         checkIn: now,
-                        // computerId is removed!
                     },
                 });
 
                 redirect('/status/welcome?msg=fixed_stale');
-            }
-
-            // If session is normal (< 12 hours), they are leaving.
-            // CHECK OUT.
-            else {
+            } else {
+                // Normal Checkout
                 await prisma.presenceLog.update({
                     where: { id: activeLog.id },
                     data: { checkOut: now },
@@ -83,16 +62,12 @@ export default async function ScanHandlerPage({ params }: { params: { id: string
 
                 redirect('/status/goodbye');
             }
-        }
-
-        // --- SCENARIO B: User is NOT Checked In ---
-        else {
-            // CHECK IN
+        } else {
+            // --- USER IS CURRENTLY OUT -> CHECK THEM IN ---
             await prisma.presenceLog.create({
                 data: {
                     userId: userId,
                     checkIn: new Date(),
-                    // computerId is removed!
                 },
             });
 
@@ -100,7 +75,7 @@ export default async function ScanHandlerPage({ params }: { params: { id: string
         }
 
     } catch (error) {
-        // Next.js redirect() throws an error intentionally, we must re-throw it.
+        // Allow the redirect to happen (Next.js throws this error intentionally)
         if ((error as any)?.digest?.startsWith('NEXT_REDIRECT')) {
             throw error;
         }
@@ -108,7 +83,10 @@ export default async function ScanHandlerPage({ params }: { params: { id: string
         console.error("Scan error:", error);
         return (
             <div className="flex h-screen items-center justify-center p-6 text-center">
-                <h1 className="text-xl font-bold text-red-600">System Error</h1>
+                <div>
+                    <h1 className="text-xl font-bold text-red-600">System Error</h1>
+                    <p className="text-gray-500">Please try scanning again.</p>
+                </div>
             </div>
         );
     }
