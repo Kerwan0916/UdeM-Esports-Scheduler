@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function SignUpPage() {
@@ -9,6 +9,9 @@ export default function SignUpPage() {
     const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const searchParams = useSearchParams();
+
+    const callbackUrl = searchParams.get("callbackUrl") || "/";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,7 +41,7 @@ export default function SignUpPage() {
             return;
         }
 
-        router.push("/?message=Account created! Please log in.");
+        router.push(`/?message=Account created! Please log in.&callbackUrl=${encodeURIComponent(callbackUrl)}`);
     };
 
     return (

@@ -31,8 +31,9 @@ function SignInForm() {
       setError("Invalid email or password");
       setLoading(false);
     } else {
-      router.push(callbackUrl);
-      router.refresh();
+      //router.push(callbackUrl);
+      //router.refresh();
+      window.location.href = callbackUrl;
     }
   };
 
