@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function SignUpPage() {
+function SignUpForm() {
     const router = useRouter();
     const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
     const [error, setError] = useState("");
@@ -135,5 +135,13 @@ export default function SignUpPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function SignUpPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center text-white">Loading...</div>}>
+            <SignUpForm />
+        </Suspense>
     );
 }
