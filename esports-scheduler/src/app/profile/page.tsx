@@ -1,15 +1,15 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/authOptions";
+import ProfileActions from "@/components/ProfileActions";
+import { Role } from "@prisma/client"; // Import Role for the Admin check
 
-// Helper to force Montreal Timezone
+// --- Helper Functions ---
 function formatTime(date: Date | string | null) {
-    if (!date) return "—"; // Return dash if null
-
+    if (!date) return "—";
     return new Date(date).toLocaleTimeString("en-US", {
-        timeZone: "America/New_York", // Forces EST/EDT (Montreal time)
+        timeZone: "America/New_York",
         hour: "2-digit",
         minute: "2-digit",
         hour12: true
@@ -18,7 +18,6 @@ function formatTime(date: Date | string | null) {
 
 function formatDate(date: Date | string | null) {
     if (!date) return "—";
-
     return new Date(date).toLocaleDateString("en-US", {
         timeZone: "America/New_York",
         month: "long",
@@ -34,35 +33,85 @@ export default async function ProfilePage() {
         redirect("/api/auth/signin");
     }
 
-    // 1. Fetch the user's scan history
-    const logs = await prisma.presenceLog.findMany({
-        where: {
-            userId: (session.user as any).id, // We ensured ID is in session in authOptions
-        },
-        orderBy: {
-            checkIn: "desc",
-        },
-        take: 50, // Limit to last 50 entries
-    });
+    const userId = (session.user as any).id;
+    const userRole = (session.user as any).role;
+
+    // 1. DEFINE EXCLUSIONS
+    // These are hidden for everyone
+    const hiddenGames = ["Free Period", "Special Events", "UdeM Class"];
+
+    // If the user is NOT an Admin, also hide "Executives"
+    if (userRole !== Role.ADMIN) {
+        hiddenGames.push("Executives");
+    }
+
+    // 2. Fetch Data with Filters
+    const [userWithTeam, logs, uniqueGames] = await prisma.$transaction([
+        prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                teams: {
+                    include: { team: true }
+                }
+            }
+        }),
+        prisma.presenceLog.findMany({
+            where: { userId: userId },
+            orderBy: { checkIn: "desc" },
+            take: 50,
+        }),
+        prisma.team.findMany({
+            distinct: ['gameTitle'],
+            where: {
+                gameTitle: {
+                    notIn: hiddenGames // Exclude the list made above
+                }
+            },
+            select: {
+                id: true,
+                gameTitle: true
+            },
+            orderBy: { gameTitle: 'asc' }
+        })
+    ]);
+
+    // 3. Map Data
+    const teamsForSelector = uniqueGames.map(g => ({
+        id: g.id,
+        name: g.gameTitle
+    }));
+
+    // 4. Determine Current Selection
+    const userRealTeam = userWithTeam?.teams[0]?.team;
+    const currentGameTitle = userRealTeam?.gameTitle;
+    const matchingRepTeam = teamsForSelector.find(t => t.name === currentGameTitle);
+
+    // Fallback: If their current team is hidden (e.g. they are an admin in "Executives" viewing as user),
+    // we still want to show the ID so the dropdown works, even if they can't re-select it later.
+    const currentTeamId = matchingRepTeam ? matchingRepTeam.id : "";
 
     return (
         <div className="mx-auto max-w-4xl p-6 text-[#0e0c1a]">
             {/* Header Section */}
-            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Your Profile</h1>
-                    <p className="text-gray-500">
+
+                    <p className="text-gray-500 flex items-center">
                         Welcome back, {session.user.name || session.user.email}
+
+                        {currentGameTitle && (
+                            <span className="ml-3 inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">
+                                {currentGameTitle}
+                            </span>
+                        )}
                     </p>
                 </div>
 
-                {/* The "Change Password" button moved here */}
-                <Link
-                    href="/account/password"
-                    className="inline-flex items-center justify-center rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
-                >
-                    Change Password
-                </Link>
+                <ProfileActions
+                    teams={teamsForSelector}
+                    currentTeamId={currentTeamId}
+                />
             </div>
 
             {/* History Board */}
@@ -91,7 +140,6 @@ export default async function ProfilePage() {
                                     const dateStr = formatDate(log.checkIn);
                                     const arrivalStr = formatTime(log.checkIn);
                                     const departureStr = formatTime(log.checkOut);
-
                                     const isActive = !log.checkOut;
 
                                     return (
