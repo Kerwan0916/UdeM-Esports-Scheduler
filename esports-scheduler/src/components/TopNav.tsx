@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 export default function TopNav() {
   const { data: session, status } = useSession();
   const role = (session?.user as any)?.role;
+  const godmode = (session?.user as any)?.godmode;
 
   // Robust check: works even if Role is Enum or String
   const isAdmin = !!role && String(role).toLowerCase().includes("admin");
@@ -73,6 +74,16 @@ export default function TopNav() {
               className={textBtnClass} // Matches "Computer Map" style
             >
               Logs
+            </Link>
+          )}
+
+          {/* Godmode Button */}
+          {godmode && (
+            <Link
+              href="/godmode"
+              className={textBtnClass}
+            >
+              Godmode
             </Link>
           )}
 

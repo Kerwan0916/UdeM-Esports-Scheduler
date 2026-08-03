@@ -98,7 +98,7 @@ export default async function ProfilePage() {
                     <h1 className="text-2xl font-bold tracking-tight">Your Profile</h1>
 
                     <p className="text-gray-500 flex items-center">
-                        Welcome back, {session.user.name || session.user.email}
+                        Welcome back, {userWithTeam?.name || session.user.name || session.user.email}
 
                         {currentGameTitle && (
                             <span className="ml-3 inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">
@@ -111,6 +111,8 @@ export default async function ProfilePage() {
                 <ProfileActions
                     teams={teamsForSelector}
                     currentTeamId={currentTeamId}
+                    isAdmin={userRole === Role.ADMIN}
+                    currentName={userWithTeam?.name || ""}
                 />
             </div>
 

@@ -23,6 +23,7 @@ model User {
   emailVerified      DateTime?
   role               Role     @default(PLAYER)
   passwordHash       String?             // <— for Credentials sign-in
+  godmode            Boolean  @default(false)
 
   teams              TeamMember[]
   reservationsCreated Reservation[] @relation("UserCreatedReservations")

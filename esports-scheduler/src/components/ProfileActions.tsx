@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 interface Team {
     id: string;
@@ -11,23 +12,27 @@ interface Team {
 
 export default function ProfileActions({
     teams,
-    currentTeamId
+    currentTeamId,
+    isAdmin,
+    currentName
 }: {
     teams: Team[],
-    currentTeamId: string
+    currentTeamId: string,
+    isAdmin?: boolean,
+    currentName?: string
 }) {
     const router = useRouter();
+    const { update } = useSession();
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // 1. Local State for the selection
-    // We initialize it with the prop, but user changes affect ONLY this variable first.
+    // Local State
     const [selectedTeam, setSelectedTeam] = useState(currentTeamId);
+    const [newName, setNewName] = useState(currentName || "");
 
-    // 2. The Save Function
     const handleSave = async () => {
         // If nothing changed, just close the modal
-        if (selectedTeam === currentTeamId) {
+        if (selectedTeam === currentTeamId && newName === (currentName || "")) {
             setIsOpen(false);
             return;
         }
@@ -35,16 +40,27 @@ export default function ProfileActions({
         setLoading(true);
 
         try {
-            const res = await fetch("/api/profile/team", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ teamId: selectedTeam }),
-            });
-
-            if (res.ok) {
-                router.refresh(); // Refresh Server Components to update the tag
-                setIsOpen(false); // Close Modal
+            // Update team if changed
+            if (selectedTeam !== currentTeamId) {
+                await fetch("/api/profile/team", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ teamId: selectedTeam }),
+                });
             }
+
+            // Update name if changed (Admins only)
+            if (isAdmin && newName !== (currentName || "")) {
+                await fetch("/api/profile/name", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: newName }),
+                });
+                await update({ name: newName });
+            }
+
+            router.refresh(); // Refresh Server Components to update the tag
+            setIsOpen(false); // Close Modal
         } catch (error) {
             console.error("Failed to save", error);
         } finally {
@@ -54,7 +70,10 @@ export default function ProfileActions({
 
     // Reset state when opening/closing so it doesn't get stuck
     const toggleModal = (open: boolean) => {
-        if (open) setSelectedTeam(currentTeamId); // Reset to current DB value
+        if (open) {
+            setSelectedTeam(currentTeamId); // Reset to current DB value
+            setNewName(currentName || "");
+        }
         setIsOpen(open);
     };
 
@@ -75,7 +94,6 @@ export default function ProfileActions({
                     />
 
                     <div className="relative w-full max-w-sm transform overflow-hidden rounded-2xl bg-white p-6 shadow-xl transition-all">
-
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-lg font-bold text-gray-900">Edit Profile</h3>
                             <button
@@ -89,6 +107,25 @@ export default function ProfileActions({
                         </div>
 
                         <div className="space-y-6">
+                            {/* Name Edit (Admin Only) */}
+                            {isAdmin && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Your Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                        className="block w-full rounded-xl border-gray-200 bg-gray-50 py-3 px-4 text-sm font-medium text-gray-900 focus:border-black focus:ring-black outline-none transition"
+                                        placeholder="Enter your name"
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        As an admin, you can change the name associated with this account.
+                                    </p>
+                                </div>
+                            )}
+
                             {/* Team Selection */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
