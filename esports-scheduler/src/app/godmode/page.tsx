@@ -13,6 +13,7 @@ type UserType = {
 export default function GodmodePage() {
     const { data: session, status } = useSession();
     const [users, setUsers] = useState<UserType[]>([]);
+    const [roleFilter, setRoleFilter] = useState<string>("ALL");
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
@@ -95,6 +96,22 @@ export default function GodmodePage() {
                     </div>
                 )}
 
+                {/* Role Filter UI */}
+                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                    {["ALL", "ADMIN", "PLAYER"].map((role) => (
+                        <button
+                            key={role}
+                            onClick={() => setRoleFilter(role)}
+                            className={`px-4 py-2 flex-shrink-0 rounded-full text-sm font-medium transition-colors ${roleFilter === role
+                                    ? "bg-blue-600 text-white border border-blue-500"
+                                    : "bg-[#151226] text-gray-400 hover:bg-[#2a264a] hover:text-white border border-[#2a264a]"
+                                }`}
+                        >
+                            {role}
+                        </button>
+                    ))}
+                </div>
+
                 <div className="bg-[#151226] rounded-xl border border-[#2a264a] overflow-hidden">
                     <table className="min-w-full divide-y divide-[#2a264a]">
                         <thead className="bg-[#1a172c]">
@@ -105,7 +122,7 @@ export default function GodmodePage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#2a264a] bg-[#151226]">
-                            {users.map((user) => (
+                            {(roleFilter === "ALL" ? users : users.filter(u => u.role === roleFilter)).map((user) => (
                                 <tr key={user.id} className="hover:bg-[#1a172c] transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-[#F0EAD6]">{user.name || 'No Name'}</div>
@@ -128,9 +145,9 @@ export default function GodmodePage() {
                             ))}
                         </tbody>
                     </table>
-                    {users.length === 0 && (
+                    {(roleFilter === "ALL" ? users : users.filter(u => u.role === roleFilter)).length === 0 && (
                         <div className="text-center py-8 text-gray-400">
-                            No users found.
+                            No users found{roleFilter !== "ALL" ? ` with role ${roleFilter}` : ""}.
                         </div>
                     )}
                 </div>
